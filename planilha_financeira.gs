@@ -16,7 +16,7 @@
  * 3. Insira a linha na aba do mês, copie a tag da coluna E da linha vizinha
  *
  * TAGS DE SEÇÃO (coluna E, invisível):
- * E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte  PAT=Patrimônio
+ * POS=Posição Financeira  E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte  PAT=Patrimônio
  */
 
 // ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
@@ -469,10 +469,10 @@ function mostrarInstrucoes() {
     '  • Preencha a coluna B nas seções Gastos Fixos e Variáveis.\n' +
     '  • Use "Copiar budget do mês anterior" para reaproveitar os valores.\n\n' +
     'VALORES MANUAIS\n' +
-    '  • Rendimento do mês (linha 49): ganho ou perda de investimentos.\n' +
-    '  • Patrimônio (linhas 52–54): valor atual de cada bem físico.\n' +
-    '  • Posição Financeira (linhas 60–64): saldo em conta, investimentos,\n' +
-    '    renda fixa/variável, cripto — atualize todo mês para acompanhar.\n\n' +
+    '  • Posição Financeira (linhas 4–8): saldo em conta, investimentos,\n' +
+    '    renda fixa/variável, cripto — atualize todo mês para acompanhar.\n' +
+    '  • Rendimento do mês (linha 57): ganho ou perda de investimentos.\n' +
+    '  • Patrimônio (linhas 60–62): valor atual de cada bem físico.\n\n' +
     'CÉLULAS EM CINZA\n' +
     '  • Contêm fórmulas automáticas — não edite.\n' +
     '  • Um aviso aparecerá se você tentar editar uma dessas células.\n\n' +
@@ -491,27 +491,27 @@ function mostrarInstrucoes() {
 /*
  * Layout fixo de linhas:
  *  1        — Título
- *  3        — ENTRADAS            tag: E
- *  4–8      — itens (CAT_ENTRADA)
- *  9        — TOTAL ENTRADAS
- *  11       — GASTOS FIXOS        tag: F
- *  12–19    — itens (CAT_FIXO)
- *  20       — TOTAL FIXOS
- *  22       — GASTOS VARIÁVEIS    tag: V
- *  23–30    — itens (CAT_VARIAVEL)
- *  31       — TOTAL VARIÁVEIS
- *  33       — PJ / CNPJ           tag PJF: linha 34 / tag PJC: linhas 35–44
- *  45       — SALDO PJ
- *  47       — INVESTIMENTOS       tag: IA (só linha 48)
- *  48       — Aportado no mês
- *  49       — Rendimento do mês
- *  51       — PATRIMÔNIO          tag: PAT
- *  52–54    — bens
- *  55       — TOTAL PATRIMÔNIO
- *  57       — SALDO DO MÊS
- *  59       — POSIÇÃO FINANCEIRA  tag: POS
- *  60–64    — itens (ITEMS_POS_FINANCEIRA)
- *  65       — TOTAL ATIVOS FINANCEIROS
+ *  3        — POSIÇÃO FINANCEIRA  tag: POS
+ *  4–8      — itens (ITEMS_POS_FINANCEIRA)
+ *  9        — TOTAL ATIVOS FINANCEIROS
+ *  11       — ENTRADAS            tag: E
+ *  12–16    — itens (CAT_ENTRADA)
+ *  17       — TOTAL ENTRADAS
+ *  19       — GASTOS FIXOS        tag: F
+ *  20–27    — itens (CAT_FIXO)
+ *  28       — TOTAL FIXOS
+ *  30       — GASTOS VARIÁVEIS    tag: V
+ *  31–38    — itens (CAT_VARIAVEL)
+ *  39       — TOTAL VARIÁVEIS
+ *  41       — PJ / CNPJ           tag PJF: linha 42 / tag PJC: linhas 43–52
+ *  53       — SALDO PJ
+ *  55       — INVESTIMENTOS       tag: IA (só linha 56)
+ *  56       — Aportado no mês
+ *  57       — Rendimento do mês
+ *  59       — PATRIMÔNIO          tag: PAT
+ *  60–62    — bens
+ *  63       — TOTAL PATRIMÔNIO
+ *  65       — SALDO DO MÊS
  *  70       — LOG (título)        → LOG_ROW - 2
  *  71       — LOG (cabeçalhos)    → LOG_ROW - 1
  *  72+      — LOG (dados)         → LOG_ROW = 72
@@ -532,75 +532,91 @@ function montarAbaMensal(sheet, mesNome, ano) {
     .setFontWeight('bold').setFontSize(13)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
-  // ── ENTRADAS ───────────────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, 3, 'ENTRADAS', COR.secao, COR.secaoFonte, ['', '', 'Real', '']);
-  CAT_ENTRADA.forEach((cat, i) => {
+  // ── POSIÇÃO FINANCEIRA ─────────────────────────────────────────────────────
+  cabecalhoSecao(sheet, 3, 'POSIÇÃO FINANCEIRA', COR.secao, COR.secaoFonte, ['', '', 'Saldo atual', '']);
+
+  ITEMS_POS_FINANCEIRA.forEach((item, i) => {
     const row = 4 + i;
+    linhaItem(sheet, row, item, TAG.posFinanceira, null, null, null);
+    sheet.getRange(row, 3).setNumberFormat(FMT_BRL);
+  });
+
+  const posEnd = 3 + ITEMS_POS_FINANCEIRA.length; // row 8
+  sheet.getRange(posEnd + 1, 1, 1, 4).setBackground(COR.total);
+  sheet.getRange(posEnd + 1, 1).setValue('TOTAL ATIVOS FINANCEIROS').setFontWeight('bold');
+  sheet.getRange(posEnd + 1, 3)
+    .setFormula(`=SUMIF($E:$E;"${TAG.posFinanceira}";$C:$C)`)
+    .setFontWeight('bold').setNumberFormat(FMT_BRL);
+
+  // ── ENTRADAS ───────────────────────────────────────────────────────────────
+  cabecalhoSecao(sheet, 11, 'ENTRADAS', COR.secao, COR.secaoFonte, ['', '', 'Real', '']);
+  CAT_ENTRADA.forEach((cat, i) => {
+    const row = 12 + i;
     linhaItem(sheet, row, cat, TAG.entrada, null, sumifCategoria(row), null);
   });
-  linhaTotalSecao(sheet, 9, 'TOTAL ENTRADAS', TAG.entrada, null, false);
+  linhaTotalSecao(sheet, 17, 'TOTAL ENTRADAS', TAG.entrada, null, false);
 
   // ── GASTOS FIXOS ───────────────────────────────────────────────────────────
-  montarSecaoGastos(sheet, 11, 'GASTOS FIXOS', 12, CAT_FIXO, TAG.fixo, 20, 'TOTAL FIXOS');
+  montarSecaoGastos(sheet, 19, 'GASTOS FIXOS', 20, CAT_FIXO, TAG.fixo, 28, 'TOTAL FIXOS');
 
   // ── GASTOS VARIÁVEIS ───────────────────────────────────────────────────────
-  montarSecaoGastos(sheet, 22, 'GASTOS VARIÁVEIS', 23, CAT_VARIAVEL, TAG.variavel, 31, 'TOTAL VARIÁVEIS');
+  montarSecaoGastos(sheet, 30, 'GASTOS VARIÁVEIS', 31, CAT_VARIAVEL, TAG.variavel, 39, 'TOTAL VARIÁVEIS');
 
   // CF cobre diff de fixos e variáveis (range amplo acomoda linhas inseridas)
-  formatacaoDiferenca(sheet, 'D12:D100');
+  formatacaoDiferenca(sheet, 'D20:D100');
 
   // ── PJ / CNPJ ──────────────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, 33, 'PJ / CNPJ', COR.pj, COR.pjFonte, ['', '', 'Real', '']);
+  cabecalhoSecao(sheet, 41, 'PJ / CNPJ', COR.pj, COR.pjFonte, ['', '', 'Real', '']);
 
-  linhaItem(sheet, 34, 'Faturamento PJ', TAG.pjFat, null, sumifCategoria(34), null);
+  linhaItem(sheet, 42, 'Faturamento PJ', TAG.pjFat, null, sumifCategoria(42), null);
 
   CAT_PJ_CUSTO.forEach((cat, i) => {
-    const row = 35 + i;
+    const row = 43 + i;
     linhaItem(sheet, row, cat, TAG.pjCusto, null, sumifCategoria(row), null);
   });
 
-  // linha 45 — saldo PJ = faturamento − todos os custos
-  sheet.getRange(45, 1, 1, 4).setBackground(COR.pjTotal);
-  sheet.getRange(45, 1).setValue('SALDO PJ').setFontWeight('bold');
-  sheet.getRange(45, 3)
+  // linha 53 — saldo PJ = faturamento − todos os custos
+  sheet.getRange(53, 1, 1, 4).setBackground(COR.pjTotal);
+  sheet.getRange(53, 1).setValue('SALDO PJ').setFontWeight('bold');
+  sheet.getRange(53, 3)
     .setFormula(`=SUMIF($E:$E;"${TAG.pjFat}";$C:$C)-SUMIF($E:$E;"${TAG.pjCusto}";$C:$C)`)
     .setFontWeight('bold').setNumberFormat(FMT_BRL);
-  formatacaoDiferenca(sheet, 'C45:C45');
+  formatacaoDiferenca(sheet, 'C53:C53');
 
   // ── INVESTIMENTOS ──────────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, 47, 'INVESTIMENTOS', COR.secao, COR.secaoFonte, ['', '', 'Valor', '']);
+  cabecalhoSecao(sheet, 55, 'INVESTIMENTOS', COR.secao, COR.secaoFonte, ['', '', 'Valor', '']);
 
-  // linha 48 — aportado: do log, tag IA (subtraído no Saldo do Mês)
-  linhaItem(sheet, 48, 'Aportado no mês', TAG.invAporte, null,
+  // linha 56 — aportado: do log, tag IA (subtraído no Saldo do Mês)
+  linhaItem(sheet, 56, 'Aportado no mês', TAG.invAporte, null,
     `=SUMIF($C$${LOG_ROW}:$C;"Aporte";$D$${LOG_ROW}:$D)`, null);
 
-  // linha 49 — rendimento: entrada manual, verde=ganho / vermelho=perda
-  sheet.getRange(49, 1).setValue('Rendimento do mês');
-  sheet.getRange(49, 3).setNumberFormat(FMT_BRL);
-  setTag(sheet, 49, '');
-  formatacaoDiferenca(sheet, 'C49:C49');
+  // linha 57 — rendimento: entrada manual, verde=ganho / vermelho=perda
+  sheet.getRange(57, 1).setValue('Rendimento do mês');
+  sheet.getRange(57, 3).setNumberFormat(FMT_BRL);
+  setTag(sheet, 57, '');
+  formatacaoDiferenca(sheet, 'C57:C57');
 
   // ── PATRIMÔNIO ─────────────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, 51, 'PATRIMÔNIO', COR.secao, COR.secaoFonte, ['', '', 'Valor atual', '']);
+  cabecalhoSecao(sheet, 59, 'PATRIMÔNIO', COR.secao, COR.secaoFonte, ['', '', 'Valor atual', '']);
 
   ['Apartamento', 'Lote', 'Carro'].forEach((item, i) => {
-    const row = 52 + i;
+    const row = 60 + i;
     linhaItem(sheet, row, item, TAG.pat, null, null, null);
     sheet.getRange(row, 3).setNumberFormat(FMT_BRL);
   });
 
-  sheet.getRange(55, 1, 1, 4).setBackground(COR.total);
-  sheet.getRange(55, 1).setValue('TOTAL PATRIMÔNIO').setFontWeight('bold');
-  sheet.getRange(55, 3)
+  sheet.getRange(63, 1, 1, 4).setBackground(COR.total);
+  sheet.getRange(63, 1).setValue('TOTAL PATRIMÔNIO').setFontWeight('bold');
+  sheet.getRange(63, 3)
     .setFormula(`=SUMIF($E:$E;"${TAG.pat}";$C:$C)`)
     .setFontWeight('bold').setNumberFormat(FMT_BRL);
 
   // ── SALDO DO MÊS ───────────────────────────────────────────────────────────
-  sheet.setRowHeight(57, 40);
-  sheet.getRange(57, 1, 1, 4).setBackground(COR.saldo);
-  sheet.getRange(57, 1).setValue('SALDO DO MÊS')
+  sheet.setRowHeight(65, 40);
+  sheet.getRange(65, 1, 1, 4).setBackground(COR.saldo);
+  sheet.getRange(65, 1).setValue('SALDO DO MÊS')
     .setFontColor(COR.saldoFonte).setFontWeight('bold').setFontSize(12);
-  sheet.getRange(57, 3)
+  sheet.getRange(65, 3)
     .setFormula(
       `=SUMIF($E:$E;"${TAG.entrada}";$C:$C)` +
       `-SUMIF($E:$E;"${TAG.fixo}";$C:$C)` +
@@ -609,23 +625,7 @@ function montarAbaMensal(sheet, mesNome, ano) {
     )
     .setFontColor(COR.saldoFonte).setFontWeight('bold').setFontSize(12)
     .setNumberFormat(FMT_BRL);
-  formatacaoDiferenca(sheet, 'C57:C57');
-
-  // ── POSIÇÃO FINANCEIRA ─────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, 59, 'POSIÇÃO FINANCEIRA', COR.secao, COR.secaoFonte, ['', '', 'Saldo atual', '']);
-
-  ITEMS_POS_FINANCEIRA.forEach((item, i) => {
-    const row = 60 + i;
-    linhaItem(sheet, row, item, TAG.posFinanceira, null, null, null);
-    sheet.getRange(row, 3).setNumberFormat(FMT_BRL);
-  });
-
-  const posEnd = 59 + ITEMS_POS_FINANCEIRA.length; // row 64
-  sheet.getRange(posEnd + 1, 1, 1, 4).setBackground(COR.total);
-  sheet.getRange(posEnd + 1, 1).setValue('TOTAL ATIVOS FINANCEIROS').setFontWeight('bold');
-  sheet.getRange(posEnd + 1, 3)
-    .setFormula(`=SUMIF($E:$E;"${TAG.posFinanceira}";$C:$C)`)
-    .setFontWeight('bold').setNumberFormat(FMT_BRL);
+  formatacaoDiferenca(sheet, 'C65:C65');
 
   // ── LOG DE TRANSAÇÕES ──────────────────────────────────────────────────────
   sheet.setRowHeight(LOG_ROW - 2, 32);
@@ -662,7 +662,7 @@ function montarAbaMensal(sheet, mesNome, ano) {
   aplicarProtecao(sheet);
 
   sheet.setFrozenRows(1);
-  sheet.getRange(1, 1, posEnd + 1, 4).setVerticalAlignment('middle');
+  sheet.getRange(1, 1, LOG_ROW - 3, 4).setVerticalAlignment('middle');
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
@@ -837,60 +837,59 @@ function limparAba(sheet) {
 // Fundo cinza nas células com fórmulas automáticas — indica "não editar"
 function aplicarCinzaFormulas(sheet) {
   const g           = COR.protegido;
-  const entradasEnd = 3  + CAT_ENTRADA.length;   // 8
-  const fixosEnd    = 11 + CAT_FIXO.length;      // 19
-  const varEnd      = 22 + CAT_VARIAVEL.length;  // 30
-  const pjCustoEnd  = 34 + CAT_PJ_CUSTO.length;  // 44
-
-  const posEnd = 59 + ITEMS_POS_FINANCEIRA.length; // 64
+  const posEnd      = 3  + ITEMS_POS_FINANCEIRA.length; // 8
+  const entradasEnd = 11 + CAT_ENTRADA.length;           // 16
+  const fixosEnd    = 19 + CAT_FIXO.length;              // 27
+  const varEnd      = 30 + CAT_VARIAVEL.length;          // 38
+  const pjCustoEnd  = 42 + CAT_PJ_CUSTO.length;          // 52
 
   // Labels (col A) — alimentam SUMIF; renomear quebraria os cálculos
   [
-    `A4:A${entradasEnd}`,
-    `A12:A${fixosEnd}`,
-    `A23:A${varEnd}`,
-    `A34:A${pjCustoEnd}`,
-    'A48', 'A49', 'A52:A54',
-    `A60:A${posEnd}`,
+    `A4:A${posEnd}`,
+    `A12:A${entradasEnd}`,
+    `A20:A${fixosEnd}`,
+    `A31:A${varEnd}`,
+    `A42:A${pjCustoEnd}`,
+    'A56', 'A57', 'A60:A62',
   ].forEach(r => sheet.getRange(r).setBackground(g));
 
   // Fórmulas SUMIF (col C) — calculadas automaticamente a partir do log
   [
-    `C4:C${entradasEnd}`,
-    `C12:C${fixosEnd}`,
-    `C23:C${varEnd}`,
-    `C34:C${pjCustoEnd}`,
-    'C48',
+    `C12:C${entradasEnd}`,
+    `C20:C${fixosEnd}`,
+    `C31:C${varEnd}`,
+    `C42:C${pjCustoEnd}`,
+    'C56',
   ].forEach(r => sheet.getRange(r).setBackground(g));
 
   // Fórmulas de diferença (col D) — CF sobrepõe com verde/vermelho quando há valor;
   // cinza fica visível quando a célula está vazia ou com saldo zero.
   [
-    `D12:D${fixosEnd}`,
-    `D23:D${varEnd}`,
+    `D20:D${fixosEnd}`,
+    `D31:D${varEnd}`,
   ].forEach(r => sheet.getRange(r).setBackground(g));
 }
 
 // Proteção da aba: avisa ao editar células de fórmula
-// Áreas editáveis (sem aviso): budget B, rendimento C49, patrimônio C52:C54, log
+// Áreas editáveis (sem aviso): posição financeira C4:C8, budget B, rendimento C57, patrimônio C60:C62, log
 function aplicarProtecao(sheet) {
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
 
-  const fixosEnd = 11 + CAT_FIXO.length;
-  const varEnd   = 22 + CAT_VARIAVEL.length;
+  const posEnd   = 3  + ITEMS_POS_FINANCEIRA.length; // 8
+  const fixosEnd = 19 + CAT_FIXO.length;              // 27
+  const varEnd   = 30 + CAT_VARIAVEL.length;          // 38
 
   const protection = sheet.protect()
     .setDescription('Esta célula contém uma fórmula automática. Edite apenas as áreas em branco e o log.');
   protection.setWarningOnly(true);
-  const posEnd = 59 + ITEMS_POS_FINANCEIRA.length; // 64
 
   protection.setUnprotectedRanges([
-    sheet.getRange(`B12:B${fixosEnd}`),         // Budget Gastos Fixos
-    sheet.getRange(`B23:B${varEnd}`),            // Budget Gastos Variáveis
-    sheet.getRange('C49'),                       // Rendimento do mês
-    sheet.getRange('C52:C54'),                   // Valores de Patrimônio
-    sheet.getRange(`C60:C${posEnd}`),            // Posição Financeira
-    sheet.getRange(`A${LOG_ROW}:D2000`),         // Log de transações
+    sheet.getRange(`C4:C${posEnd}`),             // Posição Financeira
+    sheet.getRange(`B20:B${fixosEnd}`),           // Budget Gastos Fixos
+    sheet.getRange(`B31:B${varEnd}`),             // Budget Gastos Variáveis
+    sheet.getRange('C57'),                        // Rendimento do mês
+    sheet.getRange('C60:C62'),                    // Valores de Patrimônio
+    sheet.getRange(`A${LOG_ROW}:D2000`),          // Log de transações
   ]);
 }
 

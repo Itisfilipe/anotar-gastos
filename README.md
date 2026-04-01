@@ -54,9 +54,9 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 - Use **Financeiro > Copiar budget do mês anterior** para reaproveitar os valores
 
 ### Valores manuais
-- **Rendimento do mês** (linha 49, coluna C): ganho ou perda com investimentos no mês
-- **Patrimônio** (linhas 52–54, coluna C): valor atual de cada bem físico (imóvel, carro, etc.)
-- **Posição Financeira** (linhas 60–64, coluna C): saldo em conta corrente, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
+- **Posição Financeira** (linhas 4–8, coluna C): saldo em conta corrente, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
+- **Rendimento do mês** (linha 57, coluna C): ganho ou perda com investimentos no mês
+- **Patrimônio** (linhas 60–62, coluna C): valor atual de cada bem físico (imóvel, carro, etc.)
 
 ### Células em cinza
 Contêm fórmulas automáticas — não edite. Um aviso de confirmação aparece se você tentar.
