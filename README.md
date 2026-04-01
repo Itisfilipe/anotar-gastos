@@ -13,7 +13,7 @@ Sem dependências externas — funciona 100% dentro do Google Sheets.
 - **Estrutura flexível**: adicionar ou remover linhas em qualquer seção não quebra os cálculos (baseado em SUMIF + tags, não em intervalos fixos)
 - **Células protegidas**: fórmulas ficam em cinza e exibem aviso se editadas acidentalmente
 - **Seletor de data** no log de transações
-- **Locale pt_BR**: datas no formato dd/mm/aaaa, valores em R$
+- **Formato pt_BR**: datas no formato dd/mm/aaaa, valores em R$ (veja nota abaixo sobre locale)
 - **Menu "Financeiro"** com 9 ações úteis
 
 ## Configuração inicial
@@ -41,7 +41,7 @@ Sem dependências externas — funciona 100% dentro do Google Sheets.
 
 ## Como preencher
 
-### Diariamente — Log de transações (linha 62 em diante)
+### Diariamente — Log de transações (linha 72 em diante)
 - **Coluna A** — Data (seletor de data disponível)
 - **Coluna B** — Descrição
 - **Coluna C** — Categoria (dropdown)
@@ -55,7 +55,8 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 
 ### Valores manuais
 - **Rendimento do mês** (linha 49, coluna C): ganho ou perda com investimentos no mês
-- **Patrimônio** (linhas 52–54, coluna C): valor atual de cada bem
+- **Patrimônio** (linhas 52–54, coluna C): valor atual de cada bem físico (imóvel, carro, etc.)
+- **Posição Financeira** (linhas 60–64, coluna C): saldo em conta corrente, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
 
 ### Células em cinza
 Contêm fórmulas automáticas — não edite. Um aviso de confirmação aparece se você tentar.
@@ -77,9 +78,21 @@ Após alterar categorias, execute **Financeiro > Atualizar dropdowns** para prop
 
 ## Novo ano
 
-1. Altere `const ANO = 2027` no script
-2. Execute **Financeiro > Criar planilha completa**
-3. O Dashboard existente é arquivado automaticamente como "Dashboard 2026"
+1. Abra **Extensões > Apps Script** e altere `const ANO = 2027`
+2. Salve e volte para a planilha
+3. Execute **Financeiro > Criar planilha completa**
+
+O Dashboard existente é arquivado automaticamente como "Dashboard 2026" e um novo Dashboard 2027 é criado. Você mantém o histórico de todos os anos anteriores como abas separadas.
+
+## Locale e formatação de números
+
+O script define os formatos de data (`dd/mm/aaaa`) e moeda (`R$`) diretamente via código — eles funcionam com qualquer locale.
+
+No entanto, o **separador decimal** (vírgula no padrão BR: `1.234,56`) depende do locale da planilha. Para isso, é necessário deixar o locale como **Estados Unidos** na planilha, pois o script usa `setFormula()` com sintaxe en_US (vírgula como separador de argumentos). Se a planilha estiver em pt_BR, o Google Sheets espera ponto-e-vírgula nos argumentos e as fórmulas quebram.
+
+**Recomendação:** mantenha o locale da planilha como **Estados Unidos** (padrão do Google Sheets). Os valores aparecerão como `R$ 1,234.56` — o `R$` é aplicado pelo script, apenas o separador decimal segue o padrão americano.
+
+> Se o separador decimal for essencial para você, a solução definitiva seria reescrever todas as fórmulas do script usando ponto-e-vírgula como separador de argumentos (ex: `=SUMIF(A:A;"E";C:C)`). O script atual usa vírgulas por ser o padrão da API do GAS.
 
 ## Contexto fiscal (PJ Lucro Presumido)
 

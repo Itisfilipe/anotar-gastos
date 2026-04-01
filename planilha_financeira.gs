@@ -458,7 +458,7 @@ function mostrarInstrucoes() {
   ui.alert(
     'Instruções de uso — Controle Financeiro',
     'PREENCHIMENTO DIÁRIO\n' +
-    '  • Anote cada transação no LOG (linhas a partir de 62):\n' +
+    `  • Anote cada transação no LOG (linhas a partir de ${LOG_ROW}):\n` +
     '    Data | Descrição | Categoria | Valor\n' +
     '  • A Categoria (dropdown) determina em qual seção o valor aparece.\n' +
     '  • Gastos lançados como positivos; o sistema subtrai automaticamente.\n\n' +
@@ -659,7 +659,8 @@ function montarAbaMensal(sheet, mesNome, ano) {
   aplicarProtecao(sheet);
 
   sheet.setFrozenRows(1);
-  sheet.getRange('A1:D57').setVerticalAlignment('middle');
+  const posEnd = 59 + ITEMS_POS_FINANCEIRA.length;
+  sheet.getRange(1, 1, posEnd + 1, 4).setVerticalAlignment('middle');
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
@@ -888,58 +889,6 @@ function aplicarProtecao(sheet) {
     sheet.getRange(`C60:C${posEnd}`),            // Posição Financeira
     sheet.getRange(`A${LOG_ROW}:D2000`),         // Log de transações
   ]);
-}
-
-// Legenda lateral (colunas G–H) — instruções de preenchimento
-function adicionarLegenda(sheet) {
-  const COL = 7; // coluna G
-
-  const blocos = [
-    { texto: 'COMO PREENCHER',                                         cabecalho: true },
-    { texto: 'LOG DE TRANSAÇÕES',                                        secao: true },
-    { col1: 'Onde:',        col2: `Linhas abaixo da linha ${LOG_ROW - 1} (LOG)` },
-    { col1: 'Colunas:',     col2: 'Data | Descrição | Categoria | Valor' },
-    { col1: 'Categoria:',   col2: 'determina em qual seção o valor aparece no resumo' },
-    { texto: 'BUDGET',                                                  secao: true },
-    { col1: 'Onde:',        col2: 'Coluna B — Gastos Fixos e Variáveis' },
-    { col1: 'Copiar:',      col2: 'Financeiro > Copiar budget do mês anterior' },
-    { texto: 'VALORES MANUAIS',                                         secao: true },
-    { col1: 'Rendimento:',  col2: 'Coluna C, linha "Rendimento do mês" (linha 49)' },
-    { col1: 'Patrimônio:',  col2: 'Coluna C, linhas Apartamento / Lote / Carro' },
-    { texto: 'CELULAS EM CINZA',                                        secao: true },
-    { col1: '',             col2: 'Contêm fórmulas — não edite.' },
-    { col1: '',             col2: 'Um aviso aparece se você tentar editar.' },
-  ];
-
-  blocos.forEach(({ texto, col1, col2, cabecalho, secao }, i) => {
-    const row = 3 + i;
-
-    if (cabecalho) {
-      sheet.setRowHeight(row, 30);
-      sheet.getRange(row, COL, 1, 2).merge()
-        .setValue(texto)
-        .setBackground(COR.secao).setFontColor(COR.secaoFonte)
-        .setFontWeight('bold').setFontSize(10)
-        .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    } else if (secao) {
-      sheet.getRange(row, COL, 1, 2).merge()
-        .setValue(texto)
-        .setBackground(COR.total).setFontColor('#2c3e50')
-        .setFontWeight('bold').setFontSize(9)
-        .setVerticalAlignment('middle');
-      sheet.setRowHeight(row, 22);
-    } else {
-      sheet.getRange(row, COL)
-        .setValue(col1)
-        .setBackground('#f8f9fa').setFontColor('#555555')
-        .setFontSize(8).setFontWeight('bold');
-      sheet.getRange(row, COL + 1)
-        .setValue(col2)
-        .setBackground('#f8f9fa').setFontColor('#333333')
-        .setFontSize(8).setWrap(true);
-      sheet.setRowHeight(row, 20);
-    }
-  });
 }
 
 // Converte número de coluna para letra: 1→A, 26→Z, 27→AA, ...
