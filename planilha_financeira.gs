@@ -38,8 +38,6 @@ const MESES = [
   { nome: 'Dezembro',  abrev: 'Dez' },
 ];
 
-// LOG_ROW é calculado dinamicamente a partir dos arrays de categorias (via calcLayout).
-
 // Tags de seção — coluna E oculta. Totais usam SUMIF nessas tags:
 // inserir/remover linhas não quebra nada; basta copiar a tag da linha vizinha.
 const TAG = {
@@ -73,18 +71,6 @@ const CAT_INVESTIMENTO = [
 ];
 
 const ITEMS_PATRIMONIO = ['Apartamento', 'Lote', 'Carro'];
-
-// LOG_ROW — primeira linha de dados no log, calculado a partir dos arrays acima.
-// Cada seção = (cabeçalho + itens + total) + 1 linha de gap.
-const LOG_ROW = 3                                                 // posHeader
-  + (1 + ITEMS_POS_FINANCEIRA.length + 1) + 1                    // POS + gap
-  + (1 + CAT_ENTRADA.length + 1) + 1                             // ENT + gap
-  + (1 + CAT_FIXO.length + 1) + 1                                // FIX + gap
-  + (1 + CAT_VARIAVEL.length + 1) + 1                            // VAR + gap
-  + (1 + 1 + CAT_PJ_CUSTO.length + 1) + 1                       // PJ + gap
-  + (1 + CAT_INVESTIMENTO.length + 1 + 1) + 1                    // INV + gap
-  + (1 + ITEMS_PATRIMONIO.length + 1) + 1                        // PAT + gap → saldoRow
-  + 5;                                                            // saldo(1) + gap(2) + título(1) + cabeçalho(1)
 
 const COR = {
   titulo:     '#1a1a2e',
@@ -172,6 +158,10 @@ const CATEGORIAS = [
   ...CAT_PJ_CUSTO,
   ...CAT_INVESTIMENTO,
 ];
+
+// LOG_ROW — primeira linha de dados no log, derivado de calcLayout().
+// saldoRow(1) + gap(2) + título(1) + cabeçalho(1) = +5 → LOG_ROW é a linha seguinte.
+const LOG_ROW = calcLayout().saldoRow + 5;
 
 // ─── MENU ─────────────────────────────────────────────────────────────────────
 
@@ -580,7 +570,7 @@ function montarAbaMensal(sheet, mesNome, ano) {
   montarSecaoGastos(sheet, L.varHeader, 'GASTOS VARIÁVEIS', L.varStart, CAT_VARIAVEL, TAG.variavel, L.varTotal, 'TOTAL VARIÁVEIS');
 
   // CF cobre diff de fixos e variáveis
-  formatacaoDiferenca(sheet, `D${L.fixStart}:D${L.varEnd}`);
+  formatacaoDiferenca(sheet, `D${L.fixStart}:D${L.varTotal}`);
 
   // ── PJ / CNPJ ──────────────────────────────────────────────────────────────
   cabecalhoSecao(sheet, L.pjHeader, 'PJ / CNPJ', COR.pj, COR.pjFonte, ['', '', 'Real', '']);
@@ -894,8 +884,8 @@ function calcLayout() {
 function aplicarCinzaFormulas(sheet, L) {
   const g = COR.protegido;
 
-  // Labels (col A) — alimentam SUMIF; renomear quebraria os cálculos
   [
+    // Labels (col A) — alimentam SUMIF; renomear quebraria os cálculos
     `A${L.posStart}:A${L.posEnd}`,
     `A${L.entStart}:A${L.entEnd}`,
     `A${L.fixStart}:A${L.fixEnd}`,
@@ -903,19 +893,13 @@ function aplicarCinzaFormulas(sheet, L) {
     `A${L.pjFatRow}:A${L.pjCustoEnd}`,
     `A${L.invStart}:A${L.invEnd}`, `A${L.invRendRow}`,
     `A${L.patStart}:A${L.patEnd}`,
-  ].forEach(r => sheet.getRange(r).setBackground(g));
-
-  // Fórmulas SUMIF (col C) — calculadas automaticamente a partir do log
-  [
+    // Fórmulas SUMIF (col C) — calculadas automaticamente a partir do log
     `C${L.entStart}:C${L.entEnd}`,
     `C${L.fixStart}:C${L.fixEnd}`,
     `C${L.varStart}:C${L.varEnd}`,
     `C${L.pjFatRow}:C${L.pjCustoEnd}`,
     `C${L.invStart}:C${L.invEnd}`,
-  ].forEach(r => sheet.getRange(r).setBackground(g));
-
-  // Fórmulas de diferença (col D)
-  [
+    // Fórmulas de diferença (col D)
     `D${L.fixStart}:D${L.fixEnd}`,
     `D${L.varStart}:D${L.varEnd}`,
   ].forEach(r => sheet.getRange(r).setBackground(g));
