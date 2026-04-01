@@ -16,7 +16,7 @@
  * 3. Insira a linha na aba do mês, copie a tag da coluna E da linha vizinha
  *
  * TAGS DE SEÇÃO (coluna E, invisível):
- * POS=Posição Financeira  E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte
+ * POS=Saldo Anterior  E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte
  */
 
 // ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ const TAG = {
   posFinanceira:'POS',
 };
 
-// Itens da seção Posição Financeira — valores manuais (snapshot do saldo atual)
+// Itens da seção Saldo Anterior — valores manuais (snapshot do saldo atual)
 const ITEMS_POS_FINANCEIRA = [
   'Conta corrente PF',
   'Renda Fixa (CDB, LCI, Tesouro)',
@@ -455,7 +455,7 @@ function resumoMesAtual() {
     linha('Faturamento PJ',   pjFat)     +
     linha('Custos PJ',        pjCusto)   +
     linha('SALDO PJ',         saldoPJ)   +
-    '\n\n── POSIÇÃO FINANCEIRA ───────────────────' +
+    '\n\n── SALDO ANTERIOR ───────────────────────' +
     linha('Total ativos financeiros', posTotal),
     ui.ButtonSet.OK
   );
@@ -552,7 +552,7 @@ function mostrarInstrucoes() {
     '  • Preencha a coluna B nas seções Gastos Fixos e Variáveis.\n' +
     '  • Use "Copiar budget do mês anterior" para reaproveitar os valores.\n\n' +
     'VALORES MANUAIS\n' +
-    '  • Posição Financeira (seção no topo): saldo em conta, investimentos,\n' +
+    '  • Saldo Anterior (seção no topo): saldo em conta, investimentos,\n' +
     '    renda fixa/variável, cripto — atualize todo mês para acompanhar.\n' +
     '  • Rendimento do mês (seção Investimentos): ganho ou perda.\n\n' +
     'CÉLULAS EM CINZA\n' +
@@ -577,7 +577,7 @@ function mostrarInstrucoes() {
  *
  * Ordem das seções:
  *  1        — Título
- *  POSIÇÃO FINANCEIRA  (tag: POS)   — snapshot de saldos PF + PJ
+ *  SALDO ANTERIOR      (tag: POS)   — snapshot de saldos PF + PJ
  *  ENTRADAS            (tag: E)
  *  GASTOS FIXOS        (tag: F)     — com budget
  *  GASTOS VARIÁVEIS    (tag: V)     — com budget
@@ -605,8 +605,8 @@ function montarAbaMensal(sheet, mesNome, ano) {
     .setFontWeight('bold').setFontSize(13)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
-  // ── POSIÇÃO FINANCEIRA ─────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, L.posHeader, 'POSIÇÃO FINANCEIRA', COR.secao, COR.secaoFonte, ['', '', 'Saldo atual', '']);
+  // ── SALDO ANTERIOR ─────────────────────────────────────────────────────────
+  cabecalhoSecao(sheet, L.posHeader, 'SALDO ANTERIOR', COR.secao, COR.secaoFonte, ['', '', 'Saldo atual', '']);
   ITEMS_POS_FINANCEIRA.forEach((item, i) => {
     linhaItem(sheet, L.posStart + i, item, TAG.posFinanceira, null, null, null);
     sheet.getRange(L.posStart + i, 3).setNumberFormat(FMT_BRL);
@@ -1103,7 +1103,7 @@ function aplicarProtecao(sheet, L) {
   protection.setWarningOnly(true);
 
   protection.setUnprotectedRanges([
-    sheet.getRange(`C${L.posStart}:C${L.posEnd}`),     // Posição Financeira
+    sheet.getRange(`C${L.posStart}:C${L.posEnd}`),     // Saldo Anterior
     sheet.getRange(`B${L.fixStart}:B${L.fixEnd}`),      // Budget Gastos Fixos
     sheet.getRange(`B${L.varStart}:B${L.varEnd}`),      // Budget Gastos Variáveis
     sheet.getRange(`C${L.invRendRow}`),                  // Rendimento do mês

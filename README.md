@@ -9,7 +9,7 @@ Sem dependências externas — funciona 100% dentro do Google Sheets.
 - **Abas mensais** (Jan–Dez) com resumo e log de transações
 - **Finanças pessoais (PF)**: entradas, gastos fixos e variáveis com comparativo budget × real, investimentos por tipo
 - **Finanças empresariais (PJ/CNPJ)**: faturamento, impostos (GPS, IRRF, IRPJ, CSLL, DARF), custos e saldo PJ
-- **Posição Financeira**: snapshot mensal de saldos PF + PJ (conta corrente, renda fixa/variável, cripto)
+- **Saldo Anterior**: snapshot mensal de saldos PF + PJ (conta corrente, renda fixa/variável, cripto)
 - **Dashboard** com visão consolidada do ano, gráficos e acumulado YTD
 - **Gráficos**: saldo PF/PJ (linha), entradas vs gastos (barras), PJ (barras), ativos financeiros (linha), gastos fixos/variáveis (pizza), donut de gastos por categoria em cada aba mensal
 - **Estrutura flexível**: adicionar ou remover categorias nos arrays ajusta o layout automaticamente
@@ -59,7 +59,7 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 - Use **Financeiro > Copiar budget do mês anterior** para reaproveitar os valores
 
 ### Valores manuais
-- **Posição Financeira** (seção no topo, coluna C): saldo em conta corrente PF/PJ, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
+- **Saldo Anterior** (seção no topo, coluna C): saldo em conta corrente PF/PJ, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
 - **Rendimento do mês** (seção Investimentos, coluna C): ganho ou perda com investimentos no mês
 
 ### Células em cinza
