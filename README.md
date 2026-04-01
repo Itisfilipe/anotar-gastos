@@ -7,14 +7,17 @@ Sem dependências externas — funciona 100% dentro do Google Sheets.
 ## Funcionalidades
 
 - **Abas mensais** (Jan–Dez) com resumo e log de transações
-- **Finanças pessoais (PF)**: entradas, gastos fixos e variáveis com comparativo budget × real, investimentos e patrimônio
+- **Finanças pessoais (PF)**: entradas, gastos fixos e variáveis com comparativo budget × real, investimentos por tipo
 - **Finanças empresariais (PJ/CNPJ)**: faturamento, impostos (GPS, IRRF, IRPJ, CSLL, DARF), custos e saldo PJ
-- **Dashboard** com visão consolidada do ano
-- **Estrutura flexível**: adicionar ou remover linhas em qualquer seção não quebra os cálculos (baseado em SUMIF + tags, não em intervalos fixos)
+- **Posição Financeira**: snapshot mensal de saldos PF + PJ (conta corrente, renda fixa/variável, cripto)
+- **Dashboard** com visão consolidada do ano, gráficos e acumulado YTD
+- **Gráficos**: saldo PF/PJ (linha), entradas vs gastos (barras), PJ (barras), ativos financeiros (linha), gastos fixos/variáveis (pizza), donut de gastos por categoria em cada aba mensal
+- **Estrutura flexível**: adicionar ou remover categorias nos arrays ajusta o layout automaticamente
 - **Células protegidas**: fórmulas ficam em cinza e exibem aviso se editadas acidentalmente
+- **Fechar/Reabrir mês**: bloqueia edição de meses finalizados com indicador visual (aba verde)
 - **Seletor de data** no log de transações
 - **Locale pt_BR**: datas no formato dd/mm/aaaa, valores em R$, separador decimal vírgula
-- **Menu "Financeiro"** com 9 ações úteis
+- **Menu "Financeiro"** com 11 ações úteis
 
 ## Configuração inicial
 
@@ -37,6 +40,8 @@ Sem dependências externas — funciona 100% dentro do Google Sheets.
 | Atualizar dropdowns | Atualiza as listas de categorias em todas as abas mensais |
 | Resumo do mês atual | Exibe um resumo rápido dos totais da aba ativa |
 | Verificar meses do ano | Mostra quais meses existem e quais estão faltando |
+| Fechar mês | Bloqueia a aba mensal contra edição acidental (aba fica verde) |
+| Reabrir mês | Desbloqueia a aba mensal para edição novamente |
 | Instruções de uso | Exibe as instruções de preenchimento |
 
 ## Como preencher

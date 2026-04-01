@@ -179,6 +179,9 @@ function onOpen() {
     .addItem('Resumo do mês atual',                      'resumoMesAtual')
     .addItem('Verificar meses do ano',                   'verificarMesesAno')
     .addSeparator()
+    .addItem('Fechar mês (bloquear edição)',             'fecharMes')
+    .addItem('Reabrir mês (desbloquear edição)',         'reabrirMes')
+    .addSeparator()
     .addItem('Instruções de uso',                        'mostrarInstrucoes')
     .addToUi();
 }
@@ -473,6 +476,62 @@ function verificarMesesAno() {
   );
 }
 
+// ─── FECHAR / REABRIR MÊS ────────────────────────────────────────────────────
+
+function fecharMes() {
+  const ui    = SpreadsheetApp.getUi();
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet();
+  const nome  = sheet.getName();
+
+  if (!/^[A-Za-z]{3}\/\d{4}$/.test(nome)) {
+    ui.alert('Abra uma aba mensal (ex: Jan/2026) antes de usar esta função.');
+    return;
+  }
+
+  const ok = ui.alert(
+    'Fechar Mês',
+    `Bloquear a aba "${nome}"?\n\nTodas as células ficarão protegidas contra edição acidental. ` +
+    'Use "Reabrir mês" para desbloquear depois.',
+    ui.ButtonSet.YES_NO
+  );
+  if (ok !== ui.Button.YES) return;
+
+  // Remove proteções existentes e aplica proteção total (sem ranges editáveis)
+  sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
+  const protection = sheet.protect()
+    .setDescription(`Mês fechado — "${nome}" está bloqueado para edição.`);
+  protection.setWarningOnly(true);
+  // Sem setUnprotectedRanges → tudo fica protegido
+
+  sheet.setTabColor('#4CAF50'); // verde = fechado
+  ui.alert(`Mês "${nome}" fechado! A aba está protegida contra edições.`);
+}
+
+function reabrirMes() {
+  const ui    = SpreadsheetApp.getUi();
+  const ss    = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet();
+  const nome  = sheet.getName();
+
+  if (!/^[A-Za-z]{3}\/\d{4}$/.test(nome)) {
+    ui.alert('Abra uma aba mensal (ex: Jan/2026) antes de usar esta função.');
+    return;
+  }
+
+  const ok = ui.alert(
+    'Reabrir Mês',
+    `Desbloquear a aba "${nome}" para edição?`,
+    ui.ButtonSet.YES_NO
+  );
+  if (ok !== ui.Button.YES) return;
+
+  const L = calcLayout();
+  aplicarProtecao(sheet, L);
+  sheet.setTabColor(null); // remove cor
+  ui.alert(`Mês "${nome}" reaberto! Áreas editáveis restauradas.`);
+}
+
 // ─── INSTRUÇÕES DE USO ────────────────────────────────────────────────────────
 
 function mostrarInstrucoes() {
@@ -642,6 +701,38 @@ function montarAbaMensal(sheet, mesNome, ano) {
     SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(true).build()
   );
 
+  // ── GRÁFICO DONUT — Gastos por categoria ──────────────────────────────────
+  sheet.getCharts().forEach(c => sheet.removeChart(c));
+
+  // Montar dados para o gráfico: label + valor real (col C) de Fixos e Variáveis
+  const chartLabels = [...CAT_FIXO, ...CAT_VARIAVEL];
+  const chartRows   = [];
+  CAT_FIXO.forEach((_, i)    => chartRows.push(L.fixStart + i));
+  CAT_VARIAVEL.forEach((_, i) => chartRows.push(L.varStart + i));
+
+  // Escrever dados auxiliares na coluna G:H (fora da área visível principal)
+  sheet.setColumnWidth(7, 180);
+  sheet.setColumnWidth(8, 100);
+  sheet.getRange(L.fixHeader, 7).setValue('Categoria').setFontWeight('bold');
+  sheet.getRange(L.fixHeader, 8).setValue('Valor').setFontWeight('bold');
+  chartLabels.forEach((label, i) => {
+    const r = L.fixHeader + 1 + i;
+    sheet.getRange(r, 7).setValue(label);
+    sheet.getRange(r, 8).setFormula(`=C${chartRows[i]}`).setNumberFormat(FMT_BRL);
+  });
+  const chartDataStart = L.fixHeader;
+  const chartDataEnd   = L.fixHeader + chartLabels.length;
+
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.PIE)
+    .addRange(sheet.getRange(chartDataStart, 7, chartLabels.length + 1, 2))
+    .setPosition(3, 6, 20, 0)
+    .setOption('title', 'Gastos por Categoria')
+    .setOption('width', 480).setOption('height', 400)
+    .setOption('pieHole', 0.4)
+    .setOption('legend', { position: 'right', textStyle: { fontSize: 9 } })
+    .build());
+
   aplicarCinzaFormulas(sheet, L);
   aplicarProtecao(sheet, L);
 
@@ -720,6 +811,117 @@ function criarDashboard(ss) {
 
   formatacaoDiferenca(sheet, `F3:F${totalRow}`);
   formatacaoDiferenca(sheet, `J3:J${totalRow}`);
+
+  // ── GRÁFICOS ─────────────────────────────────────────────────────────────
+  // Remove gráficos existentes para evitar acumulação ao recriar
+  sheet.getCharts().forEach(c => sheet.removeChart(c));
+
+  const mesesRange  = sheet.getRange('A3:A14');   // labels: Jan–Dez
+  const chartRow1   = totalRow + 3;               // primeira linha de gráficos
+  const chartRow2   = chartRow1 + 20;             // segunda linha de gráficos
+
+  // Chart A — Saldo PF + PJ (linha)
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.LINE)
+    .addRange(mesesRange)
+    .addRange(sheet.getRange('F3:F14'))  // Saldo PF
+    .addRange(sheet.getRange('J3:J14'))  // Saldo PJ
+    .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+    .setPosition(chartRow1, 1, 0, 0)
+    .setOption('title', 'Saldo Mensal — PF vs PJ')
+    .setOption('width', 700).setOption('height', 350)
+    .setOption('legend', { position: 'bottom' })
+    .setOption('curveType', 'function')
+    .setOption('series', { 0: { color: '#2196F3' }, 1: { color: '#4CAF50' } })
+    .build());
+
+  // Chart B — Entradas vs Gastos (barras agrupadas)
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.COLUMN)
+    .addRange(mesesRange)
+    .addRange(sheet.getRange('B3:B14'))  // Entradas
+    .addRange(sheet.getRange('C3:C14'))  // Fixos
+    .addRange(sheet.getRange('D3:D14'))  // Variáveis
+    .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+    .setPosition(chartRow1, 7, 0, 0)
+    .setOption('title', 'Entradas vs Gastos PF')
+    .setOption('width', 700).setOption('height', 350)
+    .setOption('legend', { position: 'bottom' })
+    .setOption('isStacked', false)
+    .setOption('series', { 0: { color: '#4CAF50' }, 1: { color: '#FF9800' }, 2: { color: '#F44336' } })
+    .build());
+
+  // Chart C — Faturamento vs Custos PJ (barras)
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.COLUMN)
+    .addRange(mesesRange)
+    .addRange(sheet.getRange('H3:H14'))  // Faturamento PJ
+    .addRange(sheet.getRange('I3:I14'))  // Custos PJ
+    .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+    .setPosition(chartRow2, 1, 0, 0)
+    .setOption('title', 'Faturamento vs Custos PJ')
+    .setOption('width', 700).setOption('height', 350)
+    .setOption('legend', { position: 'bottom' })
+    .setOption('series', { 0: { color: '#2196F3' }, 1: { color: '#E91E63' } })
+    .build());
+
+  // Chart D — Evolução Ativos Financeiros (linha)
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.LINE)
+    .addRange(mesesRange)
+    .addRange(sheet.getRange('L3:L14'))  // Ativos Financeiros
+    .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+    .setPosition(chartRow2, 7, 0, 0)
+    .setOption('title', 'Evolução — Ativos Financeiros')
+    .setOption('width', 700).setOption('height', 350)
+    .setOption('legend', { position: 'none' })
+    .setOption('curveType', 'function')
+    .setOption('series', { 0: { color: '#9C27B0' } })
+    .build());
+
+  // Chart E — Gastos Fixos vs Variáveis (pizza)
+  const chartRow3 = chartRow2 + 20;
+  sheet.insertChart(sheet.newChart()
+    .setChartType(Charts.ChartType.PIE)
+    .addRange(sheet.getRange(2, 3, totalRow - 1, 1))   // Fixos header + data
+    .addRange(sheet.getRange(2, 4, totalRow - 1, 1))   // Variáveis header + data
+    .setPosition(chartRow3, 1, 0, 0)
+    .setOption('title', 'Gastos Fixos vs Variáveis (Ano)')
+    .setOption('width', 500).setOption('height', 350)
+    .setOption('pieHole', 0.4)
+    .setOption('legend', { position: 'bottom' })
+    .setOption('slices', { 0: { color: '#FF9800' }, 1: { color: '#F44336' } })
+    .build());
+
+  // ── ACUMULADO NO ANO ──────────────────────────────────────────────────────
+  const acumHeader = chartRow3 + 20;
+  sheet.getRange(acumHeader, 1, 1, 12).merge()
+    .setValue('ACUMULADO NO ANO')
+    .setBackground(COR.titulo).setFontColor(COR.tituloFonte)
+    .setFontWeight('bold').setFontSize(11)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+  sheet.getRange(acumHeader + 1, 1, 1, 12).setValues([
+    ['Mês', 'Entradas PF', 'Gastos Fixos', 'Gastos Variáveis', 'Aportes', 'Saldo PF',
+     '', 'Faturamento PJ', 'Custos PJ', 'Saldo PJ', '', 'Ativos Financeiros']
+  ]);
+  sheet.getRange(acumHeader + 1, 1, 1, 12)
+    .setBackground(COR.secao).setFontColor(COR.secaoFonte)
+    .setFontWeight('bold').setHorizontalAlignment('center');
+
+  MESES.forEach(({ abrev }, idx) => {
+    const row  = acumHeader + 2 + idx;
+    const dRow = 3 + idx; // corresponding data row in the main table
+    sheet.getRange(row, 1).setValue(abrev);
+    DASH_COLS.forEach(col => {
+      const letra = colLetter(col);
+      sheet.getRange(row, col)
+        .setFormula(`=SUM(${letra}$3:${letra}${dRow})`)
+        .setNumberFormat(FMT_BRL);
+    });
+    sheet.getRange(row, 1, 1, 12).setBackground(idx % 2 === 0 ? '#f7f9fc' : '#ffffff');
+  });
+
   sheet.setFrozenRows(2);
 }
 
