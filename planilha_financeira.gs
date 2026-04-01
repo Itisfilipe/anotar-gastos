@@ -662,7 +662,6 @@ function montarAbaMensal(sheet, mesNome, ano) {
   aplicarProtecao(sheet);
 
   sheet.setFrozenRows(1);
-  const posEnd = 59 + ITEMS_POS_FINANCEIRA.length;
   sheet.getRange(1, 1, posEnd + 1, 4).setVerticalAlignment('middle');
 }
 
