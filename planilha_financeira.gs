@@ -829,6 +829,7 @@ function limparAba(sheet) {
   sheet.clearContents();
   sheet.clearFormats();
   sheet.clearNotes();
+  sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).clearDataValidations();
   sheet.setConditionalFormatRules([]);
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
 }
