@@ -56,7 +56,6 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 ### Valores manuais
 - **Posição Financeira** (seção no topo, coluna C): saldo em conta corrente PF/PJ, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
 - **Rendimento do mês** (seção Investimentos, coluna C): ganho ou perda com investimentos no mês
-- **Patrimônio** (seção Patrimônio, coluna C): valor atual de cada bem físico (imóvel, carro, etc.)
 
 ### Células em cinza
 Contêm fórmulas automáticas — não edite. Um aviso de confirmação aparece se você tentar.

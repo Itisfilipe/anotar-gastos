@@ -16,7 +16,7 @@
  * 3. Insira a linha na aba do mês, copie a tag da coluna E da linha vizinha
  *
  * TAGS DE SEÇÃO (coluna E, invisível):
- * POS=Posição Financeira  E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte  PAT=Patrimônio
+ * POS=Posição Financeira  E=Entradas  F=Fixos  V=Variáveis  PJF=PJ Faturamento  PJC=PJ Custos  IA=Aporte
  */
 
 // ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
@@ -47,7 +47,6 @@ const TAG = {
   pjFat:        'PJF',
   pjCusto:      'PJC',
   invAporte:    'IA',
-  pat:          'PAT',
   posFinanceira:'POS',
 };
 
@@ -70,7 +69,7 @@ const CAT_INVESTIMENTO = [
   'Aporte Outros',
 ];
 
-const ITEMS_PATRIMONIO = ['Apartamento', 'Lote', 'Carro'];
+
 
 const COR = {
   titulo:     '#1a1a2e',
@@ -491,8 +490,7 @@ function mostrarInstrucoes() {
     'VALORES MANUAIS\n' +
     '  • Posição Financeira (seção no topo): saldo em conta, investimentos,\n' +
     '    renda fixa/variável, cripto — atualize todo mês para acompanhar.\n' +
-    '  • Rendimento do mês (seção Investimentos): ganho ou perda.\n' +
-    '  • Patrimônio (seção Patrimônio): valor atual de cada bem físico.\n\n' +
+    '  • Rendimento do mês (seção Investimentos): ganho ou perda.\n\n' +
     'CÉLULAS EM CINZA\n' +
     '  • Contêm fórmulas automáticas — não edite.\n' +
     '  • Um aviso aparecerá se você tentar editar uma dessas células.\n\n' +
@@ -521,7 +519,6 @@ function mostrarInstrucoes() {
  *  GASTOS VARIÁVEIS    (tag: V)     — com budget
  *  PJ / CNPJ           (tag: PJF / PJC)
  *  INVESTIMENTOS       (tag: IA)    — aportes por tipo + rendimento manual
- *  PATRIMÔNIO          (tag: PAT)
  *  SALDO DO MÊS
  *  LOG DE TRANSAÇÕES   — começa em LOG_ROW (calculado)
  */
@@ -597,18 +594,6 @@ function montarAbaMensal(sheet, mesNome, ano) {
   sheet.getRange(L.invRendRow, 3).setNumberFormat(FMT_BRL);
   setTag(sheet, L.invRendRow, '');
   formatacaoDiferenca(sheet, `C${L.invRendRow}:C${L.invRendRow}`);
-
-  // ── PATRIMÔNIO ─────────────────────────────────────────────────────────────
-  cabecalhoSecao(sheet, L.patHeader, 'PATRIMÔNIO', COR.secao, COR.secaoFonte, ['', '', 'Valor atual', '']);
-  ITEMS_PATRIMONIO.forEach((item, i) => {
-    linhaItem(sheet, L.patStart + i, item, TAG.pat, null, null, null);
-    sheet.getRange(L.patStart + i, 3).setNumberFormat(FMT_BRL);
-  });
-  sheet.getRange(L.patTotal, 1, 1, 4).setBackground(COR.total);
-  sheet.getRange(L.patTotal, 1).setValue('TOTAL PATRIMÔNIO').setFontWeight('bold');
-  sheet.getRange(L.patTotal, 3)
-    .setFormula(`=SUMIF($E:$E;"${TAG.pat}";$C:$C)`)
-    .setFontWeight('bold').setNumberFormat(FMT_BRL);
 
   // ── SALDO DO MÊS ───────────────────────────────────────────────────────────
   sheet.setRowHeight(L.saldoRow, 40);
@@ -870,12 +855,7 @@ function calcLayout() {
   L.invTotal     = L.invEnd + 1;
   L.invRendRow   = L.invTotal + 1;
 
-  L.patHeader    = L.invRendRow + 2;
-  L.patStart     = L.patHeader + 1;
-  L.patEnd       = L.patHeader + ITEMS_PATRIMONIO.length;
-  L.patTotal     = L.patEnd + 1;
-
-  L.saldoRow     = L.patTotal + 2;
+  L.saldoRow     = L.invRendRow + 2;
 
   return L;
 }
@@ -892,7 +872,6 @@ function aplicarCinzaFormulas(sheet, L) {
     `A${L.varStart}:A${L.varEnd}`,
     `A${L.pjFatRow}:A${L.pjCustoEnd}`,
     `A${L.invStart}:A${L.invEnd}`, `A${L.invRendRow}`,
-    `A${L.patStart}:A${L.patEnd}`,
     // Fórmulas SUMIF (col C) — calculadas automaticamente a partir do log
     `C${L.entStart}:C${L.entEnd}`,
     `C${L.fixStart}:C${L.fixEnd}`,
@@ -919,7 +898,6 @@ function aplicarProtecao(sheet, L) {
     sheet.getRange(`B${L.fixStart}:B${L.fixEnd}`),      // Budget Gastos Fixos
     sheet.getRange(`B${L.varStart}:B${L.varEnd}`),      // Budget Gastos Variáveis
     sheet.getRange(`C${L.invRendRow}`),                  // Rendimento do mês
-    sheet.getRange(`C${L.patStart}:C${L.patEnd}`),      // Valores de Patrimônio
     sheet.getRange(`A${LOG_ROW}:D2000`),                 // Log de transações
   ]);
 }
