@@ -1,10 +1,35 @@
 # Controle Financeiro — Google Apps Script
 
-Planilha de controle financeiro pessoal e empresarial gerada automaticamente no Google Sheets via Google Apps Script. Desenvolvida para freelancers e empresários brasileiros (PJ/Lucro Presumido) que faturam para clientes no exterior.
+Planilha de controle financeiro pessoal e empresarial gerada automaticamente no Google Sheets via Google Apps Script. Sem dependências externas — funciona 100% dentro do Google Sheets.
 
-Sem dependências externas — funciona 100% dentro do Google Sheets.
+**Duas versões disponíveis:**
 
-## Funcionalidades
+| Versão | Arquivo | Para quem |
+|--------|---------|-----------|
+| **Completa** | `planilha_financeira.gs` | Freelancers e empresários brasileiros (PJ/Lucro Presumido) que faturam para o exterior. Dashboard, gráficos, budget, investimentos, PJ. |
+| **Simples** | `planilha_simples.gs` | Qualquer pessoa que só quer anotar entradas e saídas do mês. Sem complicação. |
+
+---
+
+## Versão Simples (`planilha_simples.gs`)
+
+Cria uma aba mensal com duas seções (Entradas e Saídas) e um log de transações. Os totais por categoria atualizam automaticamente.
+
+### Como usar
+1. Crie um Google Sheets novo
+2. Vá em **Extensões > Apps Script**
+3. Cole o conteúdo de `planilha_simples.gs` e salve
+4. Recarregue a planilha
+5. Menu **Financeiro > Criar mês atual**
+
+### Personalizar categorias
+Edite os arrays `CAT_ENTRADA` e `CAT_SAIDA` no topo do script e use **Financeiro > Atualizar dropdowns**.
+
+---
+
+## Versão Completa (`planilha_financeira.gs`)
+
+### Funcionalidades
 
 - **Abas mensais** (Jan–Dez) com resumo e log de transações
 - **Finanças pessoais (PF)**: entradas, gastos fixos e variáveis com comparativo budget × real, investimentos por tipo
