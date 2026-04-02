@@ -6,7 +6,7 @@ Planilha de controle financeiro pessoal gerada automaticamente no Google Sheets 
 
 ## Funcionalidades
 
-- **Abas mensais** com resumo de entradas e saídas por categoria
+- **Abas mensais** com resumo de entradas, gastos fixos e gastos variáveis por categoria
 - **Log de transações** com dropdown de categorias e seletor de data
 - **Flag "Parcela?"** no log para identificar pagamentos de dívidas
 - **Aba Dívidas** para acompanhar parcelas e financiamentos (status Ativa/Quitada automático)
@@ -50,7 +50,7 @@ Os totais por categoria no resumo (parte de cima) atualizam automaticamente.
 
 ## Personalizar categorias
 
-Edite os arrays `CAT_ENTRADA` e `CAT_SAIDA` no topo do script. Depois:
+Edite os arrays `CAT_ENTRADA`, `CAT_FIXO` e `CAT_VARIAVEL` no topo do script. Depois:
 
 - **Mês novo** (sem dados): crie normalmente — a nova categoria já aparece no resumo e no dropdown.
 - **Mês existente (com dados)**: use **Financeiro > Atualizar categorias**. O resumo é reconstruído e os dados do log são **preservados e migrados** automaticamente se o layout mudou.

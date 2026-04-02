@@ -36,6 +36,8 @@ const MESES = [
 
 // ─── CATEGORIAS ───────────────────────────────────────────────────────────────
 // Edite estes arrays para personalizar. Depois use "Atualizar categorias".
+// CAT_FIXO = gastos recorrentes (moradia, assinaturas, etc.)
+// CAT_VARIAVEL = gastos que mudam todo mês (alimentação, lazer, etc.)
 
 const CAT_ENTRADA = [
   'Salário',
@@ -43,31 +45,35 @@ const CAT_ENTRADA = [
   'Outros entrada',
 ];
 
-const CAT_SAIDA = [
+const CAT_FIXO = [
   'Moradia',
+  'Assinaturas',
+  'Cartão de crédito',
+  'Trabalho',
+];
+
+const CAT_VARIAVEL = [
   'Alimentação',
   'Transporte',
-  'Trabalho',
   'Saúde',
   'Educação',
   'Lazer',
-  'Assinaturas',
-  'Cartão de crédito',
   'Vestuário',
   'Outros',
 ];
 
-const CATEGORIAS = [...CAT_ENTRADA, ...CAT_SAIDA];
+const CATEGORIAS = [...CAT_ENTRADA, ...CAT_FIXO, ...CAT_VARIAVEL];
 
 // Tags internas (coluna E, invisível ao usuário)
-const TAG = { entrada: 'E', saida: 'S' };
+const TAG = { entrada: 'E', fixo: 'F', variavel: 'V' };
 
 // LOG_ROW calculado a partir das categorias
 const LOG_ROW = 3
-  + (1 + CAT_ENTRADA.length + 1) + 1   // ENTRADAS: header + items + total + gap
-  + (1 + CAT_SAIDA.length + 1) + 1     // SAÍDAS: header + items + total + gap
-  + 1                                   // SALDO DO MÊS
-  + 4;                                  // gap(2) + título log(1) + cabeçalho(1)
+  + (1 + CAT_ENTRADA.length + 1) + 1     // ENTRADAS
+  + (1 + CAT_FIXO.length + 1) + 1        // GASTOS FIXOS
+  + (1 + CAT_VARIAVEL.length + 1) + 1    // GASTOS VARIÁVEIS
+  + 1                                     // SALDO DO MÊS
+  + 4;                                    // gap(2) + título log(1) + cabeçalho(1)
 
 // ─── CORES E FORMATOS ─────────────────────────────────────────────────────────
 
@@ -216,16 +222,18 @@ function resumoMes() {
   const sumif = tag => tags.reduce((s, [t], i) => t === tag ? s + (Number(reais[i][0]) || 0) : s, 0);
   const fmt   = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const entradas = sumif(TAG.entrada);
-  const saidas   = sumif(TAG.saida);
-  const saldo    = entradas - saidas;
+  const entradas  = sumif(TAG.entrada);
+  const fixos     = sumif(TAG.fixo);
+  const variaveis = sumif(TAG.variavel);
+  const saldo     = entradas - fixos - variaveis;
 
   ui.alert(
     `Resumo — ${nome}`,
-    `Entradas:   ${fmt(entradas)}\n` +
-    `Saídas:     ${fmt(saidas)}\n` +
-    `─────────────────────\n` +
-    `Saldo:      ${fmt(saldo)}`,
+    `Entradas:          ${fmt(entradas)}\n` +
+    `Gastos Fixos:      ${fmt(fixos)}\n` +
+    `Gastos Variáveis:  ${fmt(variaveis)}\n` +
+    `─────────────────────────\n` +
+    `Saldo:             ${fmt(saldo)}`,
     ui.ButtonSet.OK
   );
 }
@@ -238,7 +246,7 @@ function atualizarDropdowns() {
 
   const ok = ui.alert(
     'Atualizar Categorias',
-    'Atualiza dropdowns e resumo (entradas/saídas) em todas as abas mensais.\n\nOs dados do log serão preservados. Continuar?',
+    'Atualiza dropdowns e resumo (entradas/gastos) em todas as abas mensais.\n\nOs dados do log serão preservados. Continuar?',
     ui.ButtonSet.YES_NO
   );
   if (ok !== ui.Button.YES) return;
@@ -282,9 +290,9 @@ function criarAbaComoUsar() {
     ['  • RESUMO (parte de cima) — totais automáticos por categoria, calculados a partir do log'],
     ['  • LOG (parte de baixo) — onde você anota cada transação do mês'],
     [''],
-    ['O resumo tem duas seções: ENTRADAS (dinheiro que entra) e SAÍDAS (dinheiro que sai).'],
+    ['O resumo tem três seções: ENTRADAS (dinheiro que entra), GASTOS FIXOS e GASTOS VARIÁVEIS.'],
     ['A categoria de cada transação no log determina em qual seção ela aparece.'],
-    ['O SALDO DO MÊS = Total Entradas − Total Saídas, calculado automaticamente.'],
+    ['O SALDO DO MÊS = Entradas − Gastos Fixos − Gastos Variáveis, calculado automaticamente.'],
     [''],
     ['PREENCHIMENTO DIÁRIO'],
     ['No LOG, preencha uma linha para cada transação:'],
@@ -295,7 +303,7 @@ function criarAbaComoUsar() {
     ['  • Coluna E — Parcela? (Sim/Não) — marque "Sim" se for pagamento de parcela de dívida'],
     [''],
     ['IMPORTANTE: o valor é sempre positivo. Se você gastou R$ 50 no mercado, coloque 50 (não -50).'],
-    ['A categoria "Alimentação" está em SAÍDAS, então o sistema já sabe que é um gasto.'],
+    ['A categoria "Alimentação" está em GASTOS VARIÁVEIS, então o sistema já sabe que é um gasto.'],
     [''],
     ['O QUE NÃO FUNCIONA AUTOMATICAMENTE'],
     ['  • A aba Dívidas NÃO atualiza sozinha a partir do log — você precisa atualizar'],
@@ -314,8 +322,9 @@ function criarAbaComoUsar() {
     [''],
     ['PERSONALIZAR CATEGORIAS'],
     ['  As categorias são definidas no código (Extensões > Apps Script):'],
-    ['    CAT_ENTRADA = [\'Salário\', \'Freelance\', \'Outros entrada\']'],
-    ['    CAT_SAIDA = [\'Moradia\', \'Alimentação\', \'Transporte\', ...]'],
+    ['    CAT_ENTRADA  = [\'Salário\', \'Freelance\', \'Outros entrada\']'],
+    ['    CAT_FIXO     = [\'Moradia\', \'Assinaturas\', \'Cartão de crédito\', ...]'],
+    ['    CAT_VARIAVEL = [\'Alimentação\', \'Transporte\', \'Lazer\', ...]'],
     ['  Para adicionar ou remover: edite o array, salve, e use Financeiro > Atualizar categorias.'],
     ['  O resumo é reconstruído e os dados do log são preservados.'],
     ['  Se o layout mudou (mais ou menos categorias), o log é migrado automaticamente.'],
@@ -357,7 +366,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 23, 29, 38, 46, 66].forEach(r => {
+  [3, 12, 23, 29, 38, 47, 66].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
@@ -371,13 +380,10 @@ function criarAbaComoUsar() {
 /*
  * Layout (linhas calculadas a partir dos arrays):
  *  1        — Título
- *  3        — ENTRADAS (header)
- *  4–N      — itens entrada
- *  N+1      — TOTAL ENTRADAS
- *  N+3      — SAÍDAS (header)
- *  N+4–M    — itens saída
- *  M+1      — TOTAL SAÍDAS
- *  M+3      — SALDO DO MÊS
+ *  3        — ENTRADAS (header + itens + total)
+ *            — GASTOS FIXOS (header + itens + total)
+ *            — GASTOS VARIÁVEIS (header + itens + total)
+ *            — SALDO DO MÊS
  *  LOG_ROW  — início do log de transações
  */
 function montarAba(sheet, mesNome, ano) {
@@ -396,7 +402,7 @@ function montarAba(sheet, mesNome, ano) {
     .setFontWeight('bold').setFontSize(13)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
-  // ── Resumo (entradas, saídas, saldo) ───────────────────────────────────────
+  // ── Resumo (entradas, gastos fixos, gastos variáveis, saldo) ────────────────
   reconstruirResumo(sheet);
 
   // ── LOG DE TRANSAÇÕES ──────────────────────────────────────────────────────
@@ -439,7 +445,7 @@ function montarAba(sheet, mesNome, ano) {
   sheet.setFrozenRows(1);
 }
 
-// Reconstrói as seções de resumo (entradas, saídas, saldo) sem tocar no log.
+// Reconstrói as seções de resumo (entradas, gastos fixos, gastos variáveis, saldo) sem tocar no log.
 // Chamado por montarAba (aba nova) e atualizarDropdowns (aba existente).
 function reconstruirResumo(sheet) {
   // Detecta posição antiga do log (pode diferir se categorias mudaram)
@@ -474,36 +480,37 @@ function reconstruirResumo(sheet) {
   const entEnd    = entHeader + CAT_ENTRADA.length;
   const entTotal  = entEnd + 1;
 
-  const saiHeader = entTotal + 2;
-  const saiStart  = saiHeader + 1;
-  const saiEnd    = saiHeader + CAT_SAIDA.length;
-  const saiTotal  = saiEnd + 1;
+  const fixHeader = entTotal + 2;
+  const fixStart  = fixHeader + 1;
+  const fixEnd    = fixHeader + CAT_FIXO.length;
+  const fixTotal  = fixEnd + 1;
 
-  const saldoRow  = saiTotal + 2;
+  const varHeader = fixTotal + 2;
+  const varStart  = varHeader + 1;
+  const varEnd    = varHeader + CAT_VARIAVEL.length;
+  const varTotal  = varEnd + 1;
 
-  // ── ENTRADAS ───────────────────────────────────────────────────────────────
-  cabecalho(sheet, entHeader, 'ENTRADAS', ['', '', 'Real', '']);
-  CAT_ENTRADA.forEach((cat, i) => {
-    const row = entStart + i;
-    sheet.getRange(row, 1).setValue(cat);
-    setTag(sheet, row, TAG.entrada);
-    sheet.getRange(row, 3)
-      .setFormula(`=SUMIF($C$${LOG_ROW}:$C;A${row};$D$${LOG_ROW}:$D)`)
-      .setNumberFormat(FMT_BRL);
+  const saldoRow  = varTotal + 2;
+
+  // ── Seções: Entradas, Gastos Fixos, Gastos Variáveis ────────────────────
+  const secoes = [
+    { header: entHeader, start: entStart, cats: CAT_ENTRADA, tag: TAG.entrada, titulo: 'ENTRADAS',         totalLabel: 'TOTAL ENTRADAS'  },
+    { header: fixHeader, start: fixStart, cats: CAT_FIXO,    tag: TAG.fixo,    titulo: 'GASTOS FIXOS',     totalLabel: 'TOTAL FIXOS'     },
+    { header: varHeader, start: varStart, cats: CAT_VARIAVEL,tag: TAG.variavel,titulo: 'GASTOS VARIÁVEIS', totalLabel: 'TOTAL VARIÁVEIS' },
+  ];
+
+  secoes.forEach(({ header, start, cats, tag, titulo, totalLabel }) => {
+    cabecalho(sheet, header, titulo, ['', '', 'Real', '']);
+    cats.forEach((cat, i) => {
+      const row = start + i;
+      sheet.getRange(row, 1).setValue(cat);
+      setTag(sheet, row, tag);
+      sheet.getRange(row, 3)
+        .setFormula(`=SUMIF($C$${LOG_ROW}:$C;A${row};$D$${LOG_ROW}:$D)`)
+        .setNumberFormat(FMT_BRL);
+    });
+    linhaTotal(sheet, start + cats.length, totalLabel, tag);
   });
-  linhaTotal(sheet, entTotal, 'TOTAL ENTRADAS', TAG.entrada);
-
-  // ── SAÍDAS ─────────────────────────────────────────────────────────────────
-  cabecalho(sheet, saiHeader, 'SAÍDAS', ['', '', 'Real', '']);
-  CAT_SAIDA.forEach((cat, i) => {
-    const row = saiStart + i;
-    sheet.getRange(row, 1).setValue(cat);
-    setTag(sheet, row, TAG.saida);
-    sheet.getRange(row, 3)
-      .setFormula(`=SUMIF($C$${LOG_ROW}:$C;A${row};$D$${LOG_ROW}:$D)`)
-      .setNumberFormat(FMT_BRL);
-  });
-  linhaTotal(sheet, saiTotal, 'TOTAL SAÍDAS', TAG.saida);
 
   // ── SALDO DO MÊS ──────────────────────────────────────────────────────────
   sheet.setRowHeight(saldoRow, 40);
@@ -511,7 +518,11 @@ function reconstruirResumo(sheet) {
   sheet.getRange(saldoRow, 1).setValue('SALDO DO MÊS')
     .setFontColor(COR.saldoFonte).setFontWeight('bold').setFontSize(12);
   sheet.getRange(saldoRow, 3)
-    .setFormula(`=SUMIF($E:$E;"${TAG.entrada}";$C:$C)-SUMIF($E:$E;"${TAG.saida}";$C:$C)`)
+    .setFormula(
+      `=SUMIF($E:$E;"${TAG.entrada}";$C:$C)` +
+      `-SUMIF($E:$E;"${TAG.fixo}";$C:$C)` +
+      `-SUMIF($E:$E;"${TAG.variavel}";$C:$C)`
+    )
     .setFontColor(COR.saldoFonte).setFontWeight('bold').setFontSize(12)
     .setNumberFormat(FMT_BRL);
   formatacaoCondicional(sheet, `C${saldoRow}:C${saldoRow}`);
@@ -521,8 +532,10 @@ function reconstruirResumo(sheet) {
   [
     `A${entStart}:A${entEnd}`,
     `C${entStart}:C${entEnd}`,
-    `A${saiStart}:A${saiEnd}`,
-    `C${saiStart}:C${saiEnd}`,
+    `A${fixStart}:A${fixEnd}`,
+    `C${fixStart}:C${fixEnd}`,
+    `A${varStart}:A${varEnd}`,
+    `C${varStart}:C${varEnd}`,
   ].forEach(r => sheet.getRange(r).setBackground(g));
 
   // Proteção com aviso
@@ -707,14 +720,5 @@ function formatacaoCondicional(sheet, rangeStr) {
 }
 
 function getOrCreateSheet(ss, nome) {
-  const existing = ss.getSheetByName(nome);
-  if (!existing) return ss.insertSheet(nome);
-  existing.clearContents();
-  existing.clearFormats();
-  existing.clearNotes();
-  existing.getRange(1, 1, existing.getMaxRows(), existing.getMaxColumns()).clearDataValidations();
-  existing.setConditionalFormatRules([]);
-  existing.getCharts().forEach(c => existing.removeChart(c));
-  existing.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
-  return existing;
+  return ss.getSheetByName(nome) || ss.insertSheet(nome);
 }
