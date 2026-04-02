@@ -21,7 +21,7 @@ Planilha de controle financeiro pessoal gerada automaticamente no Google Sheets 
 2. Vá em **Extensões > Apps Script**
 3. Cole o conteúdo de `planilha.gs` e salve
 4. Recarregue a planilha
-5. Menu **Financeiro > Criar mês atual**
+5. Menu **Financeiro > Novo mês**
 
 ### Preenchimento diário
 
@@ -41,19 +41,18 @@ Os totais por categoria no resumo (parte de cima) atualizam automaticamente.
 
 | Ação | Descrição |
 |------|-----------|
-| Criar mês atual | Cria a aba do mês corrente |
-| Novo mês... | Cria qualquer mês/ano (ex: Jan/2027) |
-| Resumo do mês | Exibe totais de entradas, saídas e saldo |
-| Atualizar categorias | Recria o resumo com categorias atuais (log preservado) |
-| Criar / atualizar aba Dívidas | Cria ou atualiza a aba de parcelas e financiamentos |
-| Como usar (abrir aba) | Abre a aba com instruções completas |
+| Novo mês | Cria a aba do mês atual (se já existir, navega até ela) |
+| Ver resumo | Popup com totais de entradas, gastos fixos/variáveis e saldo |
+| Dívidas | Cria ou atualiza a aba de parcelas e financiamentos |
+| Como usar | Abre a aba com instruções completas |
+| Atualizar categorias | Recria o resumo se você mudou os arrays no código (log preservado) |
 
 ## Personalizar categorias
 
 Edite os arrays `CAT_ENTRADA`, `CAT_FIXO` e `CAT_VARIAVEL` no topo do script. Depois:
 
 - **Mês novo** (sem dados): crie normalmente — a nova categoria já aparece no resumo e no dropdown.
-- **Mês existente (com dados)**: use **Financeiro > Atualizar categorias**. O resumo é reconstruído e os dados do log são **preservados e migrados** automaticamente se o layout mudou.
+- **Mês existente (com dados)**: use **Financeiro > Atualizar categorias** (último item do menu). O resumo é reconstruído e os dados do log são **preservados e migrados** automaticamente se o layout mudou.
 
 > **Atenção:** "Criar mês atual" e "Novo mês" **não recriam** abas existentes — se a aba já existe, apenas navegam até ela. Para recomeçar um mês, exclua a aba manualmente antes.
 

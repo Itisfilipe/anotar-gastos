@@ -101,15 +101,13 @@ const FMT_BRL = 'R$ #,##0.00';
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Financeiro')
-    .addItem('Criar mês atual',                  'criarMesAtual')
-    .addItem('Novo mês...',                       'criarNovoMes')
+    .addItem('Novo mês',                           'criarMesAtual')
     .addSeparator()
-    .addItem('Resumo do mês',                     'resumoMes')
-    .addItem('Atualizar categorias',               'atualizarDropdowns')
+    .addItem('Ver resumo',                          'resumoMes')
+    .addItem('Dívidas',                             'criarAbaDividas')
+    .addItem('Como usar',                           'criarAbaComoUsar')
     .addSeparator()
-    .addItem('Criar / atualizar aba Dívidas',     'criarAbaDividas')
-    .addSeparator()
-    .addItem('Como usar (abrir aba)',              'criarAbaComoUsar')
+    .addItem('Atualizar categorias',                'atualizarDropdowns')
     .addToUi();
 }
 
@@ -155,52 +153,6 @@ function criarMesAtual() {
 
   SpreadsheetApp.flush();
   ui.alert(`Aba "${nome}" criada! Anote suas transações no LOG.`);
-}
-
-// ─── NOVO MÊS ────────────────────────────────────────────────────────────────
-
-function criarNovoMes() {
-  const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  const resposta = ui.prompt(
-    'Novo Mês',
-    'Digite no formato Abrev/Ano — exemplo: Jan/2026',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (resposta.getSelectedButton() !== ui.Button.OK) return;
-
-  const partes = resposta.getResponseText().trim().split('/');
-  if (partes.length !== 2) { ui.alert('Formato inválido. Use: Jan/2026'); return; }
-
-  const abrevInput = partes[0].trim();
-  const anoInput   = parseInt(partes[1].trim(), 10);
-  const idx        = MESES.findIndex(m => m.abrev.toLowerCase() === abrevInput.toLowerCase());
-
-  if (idx === -1) {
-    ui.alert(`Mês inválido: "${abrevInput}"\nUse: Jan, Fev, Mar, Abr, Mai, Jun, Jul, Ago, Set, Out, Nov, Dez`);
-    return;
-  }
-  if (isNaN(anoInput) || anoInput < 2020 || anoInput > 2100) {
-    ui.alert(`Ano inválido: "${partes[1]}"`);
-    return;
-  }
-
-  const { abrev, nome: mesNome } = MESES[idx];
-  const nomeAba = `${abrev}/${anoInput}`;
-
-  if (ss.getSheetByName(nomeAba)) {
-    ui.alert(`A aba "${nomeAba}" já existe. Use-a diretamente ou exclua-a manualmente antes de recriar.`);
-    ss.setActiveSheet(ss.getSheetByName(nomeAba));
-    return;
-  }
-
-  try { ss.setSpreadsheetLocale('pt_BR'); } catch (e) {}
-
-  const sheet = getOrCreateSheet(ss, nomeAba);
-  montarAba(sheet, mesNome, anoInput);
-  ss.setActiveSheet(sheet);
-  ui.alert(`Aba "${nomeAba}" criada!`);
 }
 
 // ─── RESUMO DO MÊS ───────────────────────────────────────────────────────────
@@ -251,16 +203,10 @@ function atualizarDropdowns() {
   );
   if (ok !== ui.Button.YES) return;
 
-  const validacao = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIAS, true)
-    .setAllowInvalid(false)
-    .build();
-
   let count = 0;
   ss.getSheets().forEach(sheet => {
     if (/^[A-Za-z]{3}\/\d{4}$/.test(sheet.getName())) {
       reconstruirResumo(sheet);
-      sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(validacao);
       count++;
     }
   });
@@ -312,13 +258,12 @@ function criarAbaComoUsar() {
     ['  • Não há dashboard ou gráficos (ainda) — use o "Resumo do mês" no menu.'],
     [''],
     ['MENU FINANCEIRO'],
-    ['  • Criar mês atual — cria a aba do mês corrente (não sobrescreve se já existir)'],
-    ['  • Novo mês... — cria qualquer mês/ano (ex: Jan/2027, Dez/2025)'],
-    ['  • Resumo do mês — popup com totais rápidos (entradas, saídas, saldo)'],
-    ['  • Atualizar categorias — recria o resumo com as categorias atuais do script'],
-    ['    (dados do log são preservados e migrados se o layout mudou)'],
-    ['  • Criar / atualizar aba Dívidas — cria ou atualiza a aba de parcelas'],
-    ['  • Como usar (abrir aba) — abre esta aba'],
+    ['  • Novo mês — cria a aba do mês atual (se já existir, navega até ela)'],
+    ['  • Ver resumo — popup com totais rápidos (entradas, gastos fixos/variáveis, saldo)'],
+    ['  • Dívidas — cria ou atualiza a aba de parcelas e financiamentos'],
+    ['  • Como usar — abre esta aba'],
+    ['  • Atualizar categorias — recria o resumo se você mudou os arrays no código'],
+    ['    (dados do log são preservados e migrados automaticamente)'],
     [''],
     ['PERSONALIZAR CATEGORIAS'],
     ['  As categorias são definidas no código (Extensões > Apps Script):'],
@@ -366,7 +311,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 23, 29, 38, 47, 66].forEach(r => {
+  [3, 12, 23, 29, 37, 46, 65].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
@@ -402,46 +347,8 @@ function montarAba(sheet, mesNome, ano) {
     .setFontWeight('bold').setFontSize(13)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
-  // ── Resumo (entradas, gastos fixos, gastos variáveis, saldo) ────────────────
+  // ── Resumo + log (título, cabeçalhos, validações) ───────────────────────────
   reconstruirResumo(sheet);
-
-  // ── LOG DE TRANSAÇÕES ──────────────────────────────────────────────────────
-  sheet.setRowHeight(LOG_ROW - 2, 32);
-  sheet.getRange(LOG_ROW - 2, 1, 1, 5).merge()
-    .setValue('LOG DE TRANSAÇÕES')
-    .setBackground(COR.titulo).setFontColor(COR.tituloFonte)
-    .setFontWeight('bold').setFontSize(11)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle');
-
-  sheet.setRowHeight(LOG_ROW - 1, 28);
-  ['Data', 'Descrição', 'Categoria', 'Valor', 'Parcela?'].forEach((h, i) => {
-    sheet.getRange(LOG_ROW - 1, i + 1)
-      .setValue(h)
-      .setBackground(COR.logHeader).setFontColor(COR.logFonte)
-      .setFontWeight('bold').setHorizontalAlignment('center');
-  });
-
-  sheet.getRange(`A${LOG_ROW}:A2000`).setNumberFormat('dd/mm/yyyy');
-  sheet.getRange(`D${LOG_ROW}:D2000`).setNumberFormat(FMT_BRL);
-
-  sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(
-    SpreadsheetApp.newDataValidation()
-      .requireValueInList(CATEGORIAS, true)
-      .setAllowInvalid(false)
-      .build()
-  );
-
-  sheet.getRange(`E${LOG_ROW}:E2000`).setDataValidation(
-    SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Sim', 'Não'], true)
-      .setAllowInvalid(true)
-      .build()
-  );
-
-  sheet.getRange(`A${LOG_ROW}:A2000`).setDataValidation(
-    SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(true).build()
-  );
-
   sheet.setFrozenRows(1);
 }
 
@@ -451,9 +358,8 @@ function reconstruirResumo(sheet) {
   // Detecta posição antiga do log (pode diferir se categorias mudaram)
   const totalRows = sheet.getLastRow();
   let oldLogDataRow = 0;
-  const searchRows = Math.min(totalRows, LOG_ROW + 20);
-  if (searchRows > 0) {
-    const colA = sheet.getRange(1, 1, searchRows, 1).getValues();
+  if (totalRows > 0) {
+    const colA = sheet.getRange(1, 1, totalRows, 1).getValues();
     for (let i = 0; i < colA.length; i++) {
       if (colA[i][0] === 'LOG DE TRANSAÇÕES') { oldLogDataRow = i + 3; break; }
     }
@@ -466,8 +372,8 @@ function reconstruirResumo(sheet) {
     sheet.getRange(oldLogDataRow - 2, 1, totalRows - oldLogDataRow + 3, 5).clearContent().clearFormat();
   }
 
-  // Limpa área do resumo (entre título e log title bar)
-  const clearEnd = Math.min(LOG_ROW - 4, totalRows);
+  // Limpa tudo entre título (row 1) e log dados (LOG_ROW), incluindo gap rows e log title/headers
+  const clearEnd = Math.min(LOG_ROW - 1, totalRows);
   if (clearEnd >= 2) {
     sheet.getRange(2, 1, clearEnd - 1, 5).clearContent().clearFormat()
       .clearDataValidations().setBackground(null);
@@ -548,6 +454,44 @@ function reconstruirResumo(sheet) {
   ]);
 
   sheet.getRange(1, 1, saldoRow, 4).setVerticalAlignment('middle');
+
+  // ── Reescreve título e cabeçalhos do log (podem ter sido apagados na migração)
+  sheet.setRowHeight(LOG_ROW - 2, 32);
+  sheet.getRange(LOG_ROW - 2, 1, 1, 5).merge()
+    .setValue('LOG DE TRANSAÇÕES')
+    .setBackground(COR.titulo).setFontColor(COR.tituloFonte)
+    .setFontWeight('bold').setFontSize(11)
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+
+  sheet.setRowHeight(LOG_ROW - 1, 28);
+  ['Data', 'Descrição', 'Categoria', 'Valor', 'Parcela?'].forEach((h, i) => {
+    sheet.getRange(LOG_ROW - 1, i + 1)
+      .setValue(h)
+      .setBackground(COR.logHeader).setFontColor(COR.logFonte)
+      .setFontWeight('bold').setHorizontalAlignment('center');
+  });
+
+  // ── Formatos e validações do log ─────────────────────────────────────────
+  sheet.getRange(`A${LOG_ROW}:A2000`).setNumberFormat('dd/mm/yyyy');
+  sheet.getRange(`D${LOG_ROW}:D2000`).setNumberFormat(FMT_BRL);
+
+  sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(
+    SpreadsheetApp.newDataValidation()
+      .requireValueInList(CATEGORIAS, true)
+      .setAllowInvalid(false)
+      .build()
+  );
+
+  sheet.getRange(`E${LOG_ROW}:E2000`).setDataValidation(
+    SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Sim', 'Não'], true)
+      .setAllowInvalid(true)
+      .build()
+  );
+
+  sheet.getRange(`A${LOG_ROW}:A2000`).setDataValidation(
+    SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(true).build()
+  );
 
   // Restaura dados do log migrados (se o log mudou de posição)
   if (savedLogData) {
