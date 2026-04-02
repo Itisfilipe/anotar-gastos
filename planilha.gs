@@ -357,7 +357,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 23, 29, 38, 46, 65].forEach(r => {
+  [3, 12, 23, 29, 38, 46, 66].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
