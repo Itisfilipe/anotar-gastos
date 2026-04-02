@@ -349,7 +349,7 @@ function montarAba(sheet, mesNome, ano) {
   sheet.setColumnWidth(2, 180);
   sheet.setColumnWidth(3, 130);
   sheet.setColumnWidth(4, 130);
-  sheet.setColumnWidth(5, 80);
+  sheet.setColumnWidth(5, 100);
 
   // ── Título ─────────────────────────────────────────────────────────────────
   sheet.setRowHeight(1, 42);
@@ -382,15 +382,15 @@ function reconstruirResumo(sheet) {
   if (oldLogDataRow > 0 && oldLogDataRow !== LOG_ROW && totalRows >= oldLogDataRow) {
     savedLogData = sheet.getRange(oldLogDataRow, 1, totalRows - oldLogDataRow + 1, 5).getValues();
     sheet.getRange(oldLogDataRow - 2, 1, totalRows - oldLogDataRow + 3, 5)
-      .clearContent().clearFormat().clearDataValidations();
+      .clearContent().clearFormat();
   }
 
-  // Limpa tudo entre título (row 1) e log dados (LOG_ROW), incluindo gap rows e log title/headers
-  const clearEnd = Math.min(LOG_ROW - 1, totalRows);
-  if (clearEnd >= 2) {
-    sheet.getRange(2, 1, clearEnd - 1, 5).clearContent().clearFormat()
-      .clearDataValidations().setBackground(null);
-  }
+  // Limpa TODAS as validações da aba (serão reaplicadas no log depois)
+  sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).clearDataValidations();
+
+  // Limpa conteúdo/formato entre título (row 1) e log dados (LOG_ROW)
+  // Sempre limpa até LOG_ROW-1 (inclui gap + log title + headers, que serão reescritos)
+  sheet.getRange(2, 1, LOG_ROW - 2, 5).clearContent().clearFormat().setBackground(null);
   sheet.setConditionalFormatRules([]);
 
   // Posições calculadas
