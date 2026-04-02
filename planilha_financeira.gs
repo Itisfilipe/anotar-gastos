@@ -163,6 +163,18 @@ const CATEGORIAS = [
   ...CAT_INVESTIMENTO,
 ];
 
+// Retorna CATEGORIAS + descrições da aba Dívidas (se existir)
+function getTodasCategorias(ss) {
+  const dividas = ss.getSheetByName('Dívidas');
+  if (!dividas) return CATEGORIAS;
+  const lastRow = dividas.getLastRow();
+  if (lastRow < 3) return CATEGORIAS;
+  const descs = dividas.getRange(3, 1, lastRow - 2, 1).getValues()
+    .map(([d]) => d)
+    .filter(d => d && d !== 'TOTAIS');
+  return [...CATEGORIAS, ...descs];
+}
+
 // LOG_ROW — primeira linha de dados no log, derivado de calcLayout().
 // saldoRow(1) + gap(2) + título(1) + cabeçalho(1) = +5 → LOG_ROW é a linha seguinte.
 const LOG_ROW = calcLayout().saldoRow + 5;
@@ -373,7 +385,7 @@ function atualizarDropdowns() {
   if (ok !== ui.Button.YES) return;
 
   const validacao = SpreadsheetApp.newDataValidation()
-    .requireValueInList(CATEGORIAS, true)
+    .requireValueInList(getTodasCategorias(SpreadsheetApp.getActiveSpreadsheet()), true)
     .setAllowInvalid(false)
     .build();
 
@@ -600,10 +612,12 @@ function criarAbaComoUsar() {
     ['  Valores manuais (budget, saldo anterior, rendimento) também são preservados.'],
     [''],
     ['DÍVIDAS E PARCELAS'],
-    ['  Use Financeiro > Criar / atualizar aba Dívidas.'],
-    ['  Preencha: Descrição, Valor total, Parcelas, Início e Parcelas pagas.'],
-    ['  O sistema calcula: Valor mensal, Restantes e Saldo devedor.'],
-    ['  Atualize "Parcelas pagas" todo mês para acompanhar.'],
+    ['  1. Use Financeiro > Criar / atualizar aba Dívidas'],
+    ['  2. Preencha: Descrição, Valor total, Parcelas e Início'],
+    ['  3. A descrição da dívida vira automaticamente uma categoria no dropdown do log'],
+    ['  4. Ao lançar um pagamento no log mensal usando essa categoria, "Parcelas pagas" atualiza sozinho'],
+    ['  5. Restantes e Saldo devedor são calculados automaticamente'],
+    ['  Se adicionar novas dívidas depois, use "Atualizar categorias" para atualizar os dropdowns.'],
     [''],
     ['NOVO ANO'],
     ['  1. Abra Extensões > Apps Script e altere a constante ANO (ex: 2027)'],
@@ -632,7 +646,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 17, 21, 34, 42, 48, 53, 57].forEach(r => {
+  [3, 12, 17, 21, 34, 42, 50, 56, 60].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
@@ -649,22 +663,20 @@ function criarAbaDividas() {
 
   const ok = ui.alert(
     'Dívidas e Parcelas',
-    'Criar (ou recriar) a aba "Dívidas" para acompanhar parcelas e financiamentos?\n\n' +
-    'Se a aba já existir, os dados serão mantidos — apenas o cabeçalho e fórmulas serão atualizados.',
+    'Criar (ou atualizar) a aba "Dívidas"?\n\n' +
+    '• Descrições na aba Dívidas viram categorias no log mensal.\n' +
+    '• Ao lançar um pagamento no log com essa categoria, "Parcelas pagas" atualiza automaticamente.\n' +
+    '• Dados existentes serão preservados.',
     ui.ButtonSet.YES_NO
   );
   if (ok !== ui.Button.YES) return;
 
   let sheet = ss.getSheetByName('Dívidas');
   const isNew = !sheet;
-  if (isNew) {
-    sheet = ss.insertSheet('Dívidas');
-  }
+  if (isNew) sheet = ss.insertSheet('Dívidas');
 
   const headers = ['Descrição', 'Valor total', 'Parcelas', 'Valor mensal', 'Início', 'Parcelas pagas', 'Restantes', 'Saldo devedor'];
-  const widths  = [220, 130, 80, 130, 100, 110, 100, 140];
-
-  widths.forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+  [220, 130, 80, 130, 100, 120, 100, 140].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
 
   // Título
   sheet.setRowHeight(1, 42);
@@ -690,9 +702,16 @@ function criarAbaDividas() {
   sheet.getRange('D3:D500').setNumberFormat(FMT_BRL);
   sheet.getRange('H3:H500').setNumberFormat(FMT_BRL);
 
+  // Fórmula COUNTIF: conta pagamentos no log de todos os meses do ano
+  const countif = (r) => '=' + MESES.map(({ abrev }) => {
+    const aba = `${abrev}/${ANO}`;
+    return `IFERROR(COUNTIF('${aba}'!C$${LOG_ROW}:C;A${r});0)`;
+  }).join('+');
+
   // Fórmulas automáticas
   for (let r = 3; r <= 100; r++) {
     sheet.getRange(r, 4).setFormula(`=IF(AND(B${r}<>"";C${r}<>"");B${r}/C${r};"")`);
+    sheet.getRange(r, 6).setFormula(`=IF(A${r}="";"";\n${countif(r)})`);
     sheet.getRange(r, 7).setFormula(`=IF(AND(C${r}<>"";F${r}<>"");C${r}-F${r};"")`);
     sheet.getRange(r, 8).setFormula(`=IF(AND(D${r}<>"";G${r}<>"");D${r}*G${r};"")`);
   }
@@ -702,26 +721,45 @@ function criarAbaDividas() {
   sheet.getRange(totalRow, 1).setValue('TOTAIS').setFontWeight('bold');
   sheet.getRange(totalRow, 1, 1, 8).setBackground(COR.total);
   sheet.getRange(totalRow, 4).setFormula('=SUM(D3:D101)').setFontWeight('bold').setNumberFormat(FMT_BRL);
+  sheet.getRange(totalRow, 6).setFormula('=SUM(F3:F101)').setFontWeight('bold');
   sheet.getRange(totalRow, 8).setFormula('=SUM(H3:H101)').setFontWeight('bold').setNumberFormat(FMT_BRL);
 
-  // Formatação
-  sheet.getRange('D3:D101').setBackground(COR.protegido);
-  sheet.getRange('G3:G101').setBackground(COR.protegido);
-  sheet.getRange('H3:H101').setBackground(COR.protegido);
+  // Formatação cinza (D, F, G, H)
+  ['D3:D101', 'F3:F101', 'G3:G101', 'H3:H101'].forEach(r =>
+    sheet.getRange(r).setBackground(COR.protegido)
+  );
 
-  // Proteção
+  // Proteção — editável: A, B, C, E
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   const protection = sheet.protect()
-    .setDescription('Colunas D, G e H contêm fórmulas. Edite A, B, C, E e F.');
+    .setDescription('Colunas D, F, G e H contêm fórmulas. Edite A, B, C e E.');
   protection.setWarningOnly(true);
   protection.setUnprotectedRanges([
     sheet.getRange('A3:C101'),
-    sheet.getRange('E3:F101'),
+    sheet.getRange('E3:E101'),
   ]);
 
   sheet.setFrozenRows(2);
   ss.setActiveSheet(sheet);
-  ui.alert('Aba "Dívidas" pronta!\n\nPreencha: Descrição, Valor total, Parcelas, Início e Parcelas pagas.\nO sistema calcula valor mensal, restantes e saldo devedor.');
+
+  // Atualiza dropdowns para incluir descrições de dívidas
+  const validacao = SpreadsheetApp.newDataValidation()
+    .requireValueInList(getTodasCategorias(ss), true)
+    .setAllowInvalid(false)
+    .build();
+  ss.getSheets().forEach(s => {
+    if (/^[A-Za-z]{3}\/\d{4}$/.test(s.getName())) {
+      s.getRange(`C${LOG_ROW}:C2000`).setDataValidation(validacao);
+    }
+  });
+
+  ui.alert(
+    'Aba "Dívidas" pronta!\n\n' +
+    '• Preencha: Descrição, Valor total, Parcelas e Início.\n' +
+    '• A descrição vira uma categoria no log mensal.\n' +
+    '• Ao lançar pagamentos no log com essa categoria, "Parcelas pagas" atualiza sozinho.\n' +
+    '• Use "Atualizar categorias" se adicionar novas dívidas depois.'
+  );
 }
 
 // ─── ABA MENSAL ───────────────────────────────────────────────────────────────
@@ -782,7 +820,7 @@ function montarAbaMensal(sheet, mesNome, ano) {
 
   sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(
     SpreadsheetApp.newDataValidation()
-      .requireValueInList(CATEGORIAS, true)
+      .requireValueInList(getTodasCategorias(SpreadsheetApp.getActiveSpreadsheet()), true)
       .setAllowInvalid(false)
       .build()
   );
