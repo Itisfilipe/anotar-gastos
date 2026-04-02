@@ -86,7 +86,6 @@ Funcionalidades para implementar no futuro:
 - [ ] **Seção PJ / CNPJ** — faturamento, impostos (GPS, IRRF, IRPJ, CSLL, DARF), custos e saldo PJ
 - [ ] **Copiar budget do mês anterior** — reaproveitar valores de budget entre meses
 - [ ] **Fechar / Reabrir mês** — bloquear edição de meses finalizados (aba fica verde)
-- [ ] **12 abas + Dashboard automático** — criar ano inteiro de uma vez
 
 ### Dashboard e visão geral
 - [ ] **Dashboard anual** — visão consolidada do ano com totais por mês
