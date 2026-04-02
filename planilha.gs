@@ -13,7 +13,7 @@
  *
  * PREENCHIMENTO:
  * No LOG (parte de baixo da aba), preencha:
- *   Data | Descrição | Categoria | Valor | Parcela? (Sim/Não)
+ *   Data | Descrição | Categoria | Valor | Tipo (Regular/Parcela/Recorrente)
  * Os totais por categoria atualizam automaticamente.
  */
 
@@ -61,7 +61,6 @@ const CAT_FIXO = [
 ];
 
 const CAT_VARIAVEL = [
-  'Cartão de crédito',
   'Mercado / Feira',
   'Refeições fora',
   'Transporte / Combustível',
@@ -258,7 +257,7 @@ function criarAbaComoUsar() {
     ['  • Coluna B — Descrição livre (ex: "Supermercado Extra", "Salário março")'],
     ['  • Coluna C — Categoria (dropdown: Salário, Alimentação, Transporte, etc.)'],
     ['  • Coluna D — Valor (sempre POSITIVO — o sistema sabe se é entrada ou saída pela categoria)'],
-    ['  • Coluna E — Parcela? (Sim/Não) — marque "Sim" se for pagamento de parcela de dívida'],
+    ['  • Coluna E — Tipo (Regular, Parcela, Recorrente) — classifique o gasto'],
     [''],
     ['IMPORTANTE: o valor é sempre positivo. Se você gastou R$ 50 no mercado, coloque 50 (não -50).'],
     ['A categoria "Alimentação" está em GASTOS VARIÁVEIS, então o sistema já sabe que é um gasto.'],
@@ -302,8 +301,13 @@ function criarAbaComoUsar() {
     ['    Status = "Ativa" ou "Quitada" (quando Restantes ≤ 0)'],
     [''],
     ['  No log mensal, lance o pagamento da parcela como saída normal'],
-    ['  (ex: categoria "Cartão de crédito") e marque "Parcela? = Sim".'],
+    ['  (ex: categoria "Cartão de crédito") e marque Tipo = "Parcela".'],
     ['  Isso garante que o gasto aparece no saldo do mês E você sabe que é parcela.'],
+    [''],
+    ['  TIPOS DE GASTO (coluna E do log):'],
+    ['    Regular — gasto avulso do dia a dia (mercado, farmácia, uber)'],
+    ['    Parcela — pagamento de dívida parcelada (linha fica amarela)'],
+    ['    Recorrente — assinatura ou conta fixa mensal (linha fica azul)'],
     [''],
     ['CÉLULAS EM CINZA'],
     ['  Contêm fórmulas automáticas — NÃO edite.'],
@@ -323,7 +327,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 23, 29, 37, 46, 65].forEach(r => {
+  [3, 12, 23, 29, 37, 46, 70].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
@@ -367,30 +371,32 @@ function montarAba(sheet, mesNome, ano) {
 // Reconstrói as seções de resumo (entradas, gastos fixos, gastos variáveis, saldo) sem tocar no log.
 // Chamado por montarAba (aba nova) e atualizarDropdowns (aba existente).
 function reconstruirResumo(sheet) {
-  // Detecta posição antiga do log (pode diferir se categorias mudaram)
+  // Salva TODO o conteúdo do log antes de qualquer limpeza
   const totalRows = sheet.getLastRow();
-  let oldLogDataRow = 0;
+  const totalCols = Math.max(sheet.getLastColumn(), 5);
+  let savedLogData = null;
+
   if (totalRows > 0) {
+    // Encontra onde o log começa (procura "LOG DE TRANSAÇÕES")
     const colA = sheet.getRange(1, 1, totalRows, 1).getValues();
+    let oldLogDataRow = 0;
     for (let i = 0; i < colA.length; i++) {
-      if (colA[i][0] === 'LOG DE TRANSAÇÕES') { oldLogDataRow = i + 3; break; }
+      if (colA[i][0] === 'LOG DE TRANSAÇÕES') { oldLogDataRow = i + 3; break; } // +1 base, +1 header, +1 data
+    }
+
+    // Salva TODAS as linhas e colunas do log (filtra vazias depois)
+    if (oldLogDataRow > 0 && totalRows >= oldLogDataRow) {
+      const allData = sheet.getRange(oldLogDataRow, 1, totalRows - oldLogDataRow + 1, totalCols).getValues();
+      savedLogData = allData.filter(row => row.some(cell => cell !== ''));
     }
   }
 
-  // Se o log mudou de posição, migra os dados
-  let savedLogData = null;
-  if (oldLogDataRow > 0 && oldLogDataRow !== LOG_ROW && totalRows >= oldLogDataRow) {
-    savedLogData = sheet.getRange(oldLogDataRow, 1, totalRows - oldLogDataRow + 1, 5).getValues();
-    sheet.getRange(oldLogDataRow - 2, 1, totalRows - oldLogDataRow + 3, 5)
-      .clearContent().clearFormat();
-  }
-
-  // Limpa TODAS as validações da aba (serão reaplicadas no log depois)
+  // Limpa TUDO abaixo do título (row 1): validações, conteúdo, formato
   sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns()).clearDataValidations();
-
-  // Limpa conteúdo/formato entre título (row 1) e log dados (LOG_ROW)
-  // Sempre limpa até LOG_ROW-1 (inclui gap + log title + headers, que serão reescritos)
-  sheet.getRange(2, 1, LOG_ROW - 2, 5).clearContent().clearFormat().setBackground(null);
+  const rowsToClear = Math.max(totalRows, LOG_ROW) - 1;
+  if (rowsToClear > 0) {
+    sheet.getRange(2, 1, rowsToClear, totalCols).clearContent().clearFormat().setBackground(null);
+  }
   sheet.setConditionalFormatRules([]);
 
   // Posições calculadas
@@ -477,7 +483,7 @@ function reconstruirResumo(sheet) {
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
 
   sheet.setRowHeight(LOG_ROW - 1, 28);
-  ['Data', 'Descrição', 'Categoria', 'Valor', 'Parcela?'].forEach((h, i) => {
+  ['Data', 'Descrição', 'Categoria', 'Valor', 'Tipo'].forEach((h, i) => {
     sheet.getRange(LOG_ROW - 1, i + 1)
       .setValue(h)
       .setBackground(COR.logHeader).setFontColor(COR.logFonte)
@@ -491,13 +497,13 @@ function reconstruirResumo(sheet) {
   sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(
     SpreadsheetApp.newDataValidation()
       .requireValueInList(CATEGORIAS, true)
-      .setAllowInvalid(false)
+      .setAllowInvalid(true)
       .build()
   );
 
   sheet.getRange(`E${LOG_ROW}:E2000`).setDataValidation(
     SpreadsheetApp.newDataValidation()
-      .requireValueInList(['Sim', 'Não'], true)
+      .requireValueInList(['Regular', 'Parcela', 'Recorrente'], true)
       .setAllowInvalid(true)
       .build()
   );
@@ -505,6 +511,20 @@ function reconstruirResumo(sheet) {
   sheet.getRange(`A${LOG_ROW}:A2000`).setDataValidation(
     SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(true).build()
   );
+
+  // Cores por tipo: Parcela = amarelo (linha inteira), Recorrente = azul (linha inteira)
+  const existingRules = sheet.getConditionalFormatRules();
+  existingRules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(`=$E${LOG_ROW}="Parcela"`)
+      .setBackground('#FFF9C4').setFontColor('#F57F17')
+      .setRanges([sheet.getRange(`A${LOG_ROW}:E2000`)]).build(),
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenFormulaSatisfied(`=$E${LOG_ROW}="Recorrente"`)
+      .setBackground('#E3F2FD').setFontColor('#1565C0')
+      .setRanges([sheet.getRange(`A${LOG_ROW}:E2000`)]).build()
+  );
+  sheet.setConditionalFormatRules(existingRules);
 
   // Restaura dados do log migrados (se o log mudou de posição)
   if (savedLogData) {

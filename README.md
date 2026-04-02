@@ -8,7 +8,7 @@ Planilha de controle financeiro pessoal gerada automaticamente no Google Sheets 
 
 - **Abas mensais** com resumo de entradas, gastos fixos e gastos variáveis por categoria
 - **Log de transações** com dropdown de categorias e seletor de data
-- **Flag "Parcela?"** no log para identificar pagamentos de dívidas
+- **Flag "Tipo"** no log para identificar pagamentos de dívidas
 - **Aba Dívidas** para acompanhar parcelas e financiamentos (status Ativa/Quitada automático)
 - **Atualizar categorias** sem perder dados (reconstrói resumo, preserva log)
 - **Aba "Como usar"** com instruções completas (criada automaticamente)
@@ -33,7 +33,7 @@ No **LOG** (parte de baixo de cada aba mensal):
 | **B** — Descrição | Ex: "Supermercado Extra" |
 | **C** — Categoria | Dropdown (Salário, Alimentação, etc.) |
 | **D** — Valor | Sempre positivo — a categoria determina se é entrada ou saída |
-| **E** — Parcela? | Sim/Não — marque "Sim" se for pagamento de parcela |
+| **E** — Tipo | Regular, Parcela (amarelo) ou Recorrente (azul) |
 
 Os totais por categoria no resumo (parte de cima) atualizam automaticamente.
 
@@ -68,7 +68,7 @@ Use **Financeiro > Criar / atualizar aba Dívidas**.
 | **Início** — ex: Jan/2026 | **Status** = Ativa ou Quitada (automático) |
 | **Parcelas pagas** — atualize todo mês | |
 
-A aba Dívidas é independente das abas mensais — atualize "Parcelas pagas" manualmente a cada mês. No log mensal, lance o pagamento usando uma categoria normal (ex: "Cartão de crédito") e marque "Parcela? = Sim".
+A aba Dívidas é independente das abas mensais — atualize "Parcelas pagas" manualmente a cada mês. No log mensal, lance o pagamento usando uma categoria normal (ex: "Cartão de crédito") e marque "Tipo = Sim".
 
 ## Locale e formatação
 
