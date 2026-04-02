@@ -54,15 +54,12 @@ Edite os arrays `CAT_ENTRADA` e `CAT_SAIDA` no topo do script. Depois:
 | Você preenche | Calculado automaticamente |
 |---------------|--------------------------|
 | **Descrição** — ex: "Geladeira Nubank" | **Valor mensal** = Valor total ÷ Parcelas |
-| **Valor total** — ex: R$ 3.600 | **Pagas** = pagamentos no log + Anteriores |
-| **Parcelas** — ex: 12 | **Restantes** = Parcelas − Pagas |
-| **Início** — ex: Jan/2026 | **Saldo devedor** = Valor mensal × Restantes |
-| **Anteriores** — parcelas já pagas antes da planilha | **Status** = Ativa ou Quitada (automático) |
+| **Valor total** — ex: R$ 3.600 | **Restantes** = Parcelas − Parcelas pagas |
+| **Parcelas** — ex: 12 | **Saldo devedor** = Valor mensal × Restantes |
+| **Início** — ex: Jan/2026 | **Status** = Ativa ou Quitada (automático) |
+| **Parcelas pagas** — atualize todo mês | |
 
-- A descrição vira uma **categoria no dropdown** do log mensal
-- Ao lançar um pagamento com essa categoria, "Pagas" atualiza sozinho
-- Dívidas **quitadas** (Restantes ≤ 0) saem automaticamente do dropdown
-- Para dívidas já em andamento, preencha **"Anteriores"** com as parcelas já pagas antes de usar a planilha
+A aba Dívidas é independente das abas mensais — atualize "Parcelas pagas" manualmente a cada mês. No log mensal, lance o pagamento usando a categoria normal (ex: "Cartão de crédito") para que entre no resumo de saídas.
 
 A linha de **Totais** no final mostra o compromisso mensal total e o saldo devedor total. Colunas em cinza contêm fórmulas — não edite.
 
@@ -131,7 +128,7 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 - **Rendimento do mês** (seção Investimentos, coluna C): ganho ou perda com investimentos no mês
 
 ### Dívidas e parcelas
-Use **Financeiro > Criar / atualizar aba Dívidas**. Funciona igual à versão simples — preencha Descrição, Valor total, Parcelas e Início. Parcelas pagas são contadas automaticamente a partir do log mensal. Veja a tabela detalhada na seção da versão simples acima.
+Use **Financeiro > Criar / atualizar aba Dívidas**. Funciona igual à versão simples — preencha Descrição, Valor total, Parcelas, Início e Parcelas pagas. Veja a tabela detalhada na seção da versão simples acima.
 
 ### Células em cinza
 Contêm fórmulas automáticas — não edite. Um aviso de confirmação aparece se você tentar.

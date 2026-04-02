@@ -59,19 +59,6 @@ const CAT_SAIDA = [
 
 const CATEGORIAS = [...CAT_ENTRADA, ...CAT_SAIDA];
 
-// Retorna CATEGORIAS + descrições de dívidas ativas (Status ≠ "Quitada")
-function getTodasCategorias(ss) {
-  const dividas = ss.getSheetByName('Dívidas');
-  if (!dividas) return CATEGORIAS;
-  const lastRow = dividas.getLastRow();
-  if (lastRow < 3) return CATEGORIAS;
-  const dados = dividas.getRange(3, 1, lastRow - 2, 10).getValues(); // A..J
-  const descs = dados
-    .filter(row => row[0] && row[0] !== 'TOTAIS' && row[9] !== 'Quitada')
-    .map(row => row[0]);
-  return [...CATEGORIAS, ...descs];
-}
-
 // Tags internas (coluna E, invisível ao usuário)
 const TAG = { entrada: 'E', saida: 'S' };
 
@@ -251,7 +238,7 @@ function atualizarDropdowns() {
   if (ok !== ui.Button.YES) return;
 
   const validacao = SpreadsheetApp.newDataValidation()
-    .requireValueInList(getTodasCategorias(SpreadsheetApp.getActiveSpreadsheet()), true)
+    .requireValueInList(CATEGORIAS, true)
     .setAllowInvalid(false)
     .build();
 
@@ -308,12 +295,11 @@ function criarAbaComoUsar() {
     ['  O resumo é reconstruído com as novas categorias. Dados do log são preservados.'],
     [''],
     ['DÍVIDAS E PARCELAS'],
-    ['  1. Use Financeiro > Criar / atualizar aba Dívidas'],
-    ['  2. Preencha: Descrição, Valor total, Parcelas e Início'],
-    ['  3. A descrição da dívida vira automaticamente uma categoria no dropdown do log'],
-    ['  4. Ao lançar um pagamento no log mensal usando essa categoria, "Parcelas pagas" atualiza sozinho'],
-    ['  5. Restantes e Saldo devedor são calculados automaticamente'],
-    ['  Se adicionar novas dívidas depois, use "Atualizar categorias" para atualizar os dropdowns.'],
+    ['  Use Financeiro > Criar / atualizar aba Dívidas.'],
+    ['  Preencha: Descrição, Valor total, Parcelas, Início e Parcelas pagas.'],
+    ['  Atualize "Parcelas pagas" manualmente todo mês.'],
+    ['  Status muda para "Quitada" automaticamente quando Restantes chega a zero.'],
+    ['  No log mensal, lance o pagamento como saída normal (ex: "Cartão de crédito").'],
     [''],
     ['CÉLULAS EM CINZA'],
     ['  Contêm fórmulas automáticas — não edite.'],
@@ -332,7 +318,7 @@ function criarAbaComoUsar() {
   sheet.setRowHeight(1, 42);
 
   // Seções
-  [3, 12, 19, 26, 34].forEach(r => {
+  [3, 12, 19, 26, 33].forEach(r => {
     sheet.getRange(r, 1).setFontSize(11).setFontWeight('bold')
       .setFontColor(COR.secao);
   });
@@ -395,7 +381,7 @@ function montarAba(sheet, mesNome, ano) {
 
   sheet.getRange(`C${LOG_ROW}:C2000`).setDataValidation(
     SpreadsheetApp.newDataValidation()
-      .requireValueInList(getTodasCategorias(SpreadsheetApp.getActiveSpreadsheet()), true)
+      .requireValueInList(CATEGORIAS, true)
       .setAllowInvalid(false)
       .build()
   );
@@ -493,11 +479,7 @@ function criarAbaDividas() {
 
   const ok = ui.alert(
     'Dívidas e Parcelas',
-    'Criar (ou atualizar) a aba "Dívidas"?\n\n' +
-    '• Descrições viram categorias no log mensal.\n' +
-    '• Pagamentos no log abatam parcelas automaticamente.\n' +
-    '• Dívidas quitadas saem do dropdown.\n' +
-    '• Dados existentes serão preservados.',
+    'Criar (ou atualizar) a aba "Dívidas" para acompanhar parcelas e financiamentos?\n\nDados existentes serão preservados.',
     ui.ButtonSet.YES_NO
   );
   if (ok !== ui.Button.YES) return;
@@ -507,15 +489,15 @@ function criarAbaDividas() {
   if (isNew) sheet = ss.insertSheet('Dívidas');
 
   // A=Descrição B=Valor total C=Parcelas D=Valor mensal E=Início
-  // F=Anteriores G=Parcelas pagas H=Restantes I=Saldo devedor J=Status
+  // F=Parcelas pagas G=Restantes H=Saldo devedor I=Status
   const headers = ['Descrição', 'Valor total', 'Parcelas', 'Valor mensal',
-    'Início', 'Anteriores', 'Pagas', 'Restantes', 'Saldo devedor', 'Status'];
-  [220, 120, 80, 120, 100, 90, 80, 90, 130, 80].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
+    'Início', 'Parcelas pagas', 'Restantes', 'Saldo devedor', 'Status'];
+  [220, 130, 80, 130, 100, 110, 100, 140, 80].forEach((w, i) => sheet.setColumnWidth(i + 1, w));
 
   // Título
   sheet.setRowHeight(1, 42);
   if (isNew) {
-    sheet.getRange(1, 1, 1, 10).merge()
+    sheet.getRange(1, 1, 1, 9).merge()
       .setValue('DÍVIDAS E PARCELAS')
       .setBackground(COR.titulo).setFontColor(COR.tituloFonte)
       .setFontWeight('bold').setFontSize(13)
@@ -534,40 +516,29 @@ function criarAbaDividas() {
   // Formatos
   sheet.getRange('B3:B500').setNumberFormat(FMT_BRL);
   sheet.getRange('D3:D500').setNumberFormat(FMT_BRL);
-  sheet.getRange('I3:I500').setNumberFormat(FMT_BRL);
-
-  // COUNTIF: conta pagamentos no log de todos os meses (ano atual + anterior)
-  const anoAtual = new Date().getFullYear();
-  const anos = [anoAtual - 1, anoAtual];
-  const countif = (r) => anos.flatMap(ano =>
-    MESES.map(({ abrev }) =>
-      `IFERROR(COUNTIF('${abrev}/${ano}'!C$${LOG_ROW}:C;A${r});0)`
-    )
-  ).join('+');
+  sheet.getRange('H3:H500').setNumberFormat(FMT_BRL);
 
   for (let r = 3; r <= 100; r++) {
-    // D = Valor mensal
+    // D = Valor mensal = Valor total / Parcelas
     sheet.getRange(r, 4).setFormula(`=IF(AND(B${r}<>"";C${r}<>"");B${r}/C${r};"")`);
-    // G = Parcelas pagas = COUNTIF(log) + Anteriores(F)
-    sheet.getRange(r, 7).setFormula(`=IF(A${r}="";"";${countif(r)}+IF(F${r}<>"";F${r};0))`);
-    // H = Restantes
-    sheet.getRange(r, 8).setFormula(`=IF(AND(C${r}<>"";G${r}<>"");C${r}-G${r};"")`);
-    // I = Saldo devedor
-    sheet.getRange(r, 9).setFormula(`=IF(AND(D${r}<>"";H${r}<>"");D${r}*H${r};"")`);
-    // J = Status
-    sheet.getRange(r, 10).setFormula(`=IF(A${r}="";"";IF(H${r}<=0;"Quitada";"Ativa"))`);
+    // G = Restantes = Parcelas - Pagas
+    sheet.getRange(r, 7).setFormula(`=IF(AND(C${r}<>"";F${r}<>"");C${r}-F${r};"")`);
+    // H = Saldo devedor = Valor mensal * Restantes
+    sheet.getRange(r, 8).setFormula(`=IF(AND(D${r}<>"";G${r}<>"");D${r}*G${r};"")`);
+    // I = Status
+    sheet.getRange(r, 9).setFormula(`=IF(A${r}="";"";IF(G${r}<=0;"Quitada";"Ativa"))`);
   }
 
   // Totais
   const totalRow = 102;
   sheet.getRange(totalRow, 1).setValue('TOTAIS').setFontWeight('bold');
-  sheet.getRange(totalRow, 1, 1, 10).setBackground(COR.total);
+  sheet.getRange(totalRow, 1, 1, 9).setBackground(COR.total);
   sheet.getRange(totalRow, 4).setFormula('=SUM(D3:D101)').setFontWeight('bold').setNumberFormat(FMT_BRL);
-  sheet.getRange(totalRow, 7).setFormula('=SUM(G3:G101)').setFontWeight('bold');
-  sheet.getRange(totalRow, 9).setFormula('=SUM(I3:I101)').setFontWeight('bold').setNumberFormat(FMT_BRL);
+  sheet.getRange(totalRow, 6).setFormula('=SUM(F3:F101)').setFontWeight('bold');
+  sheet.getRange(totalRow, 8).setFormula('=SUM(H3:H101)').setFontWeight('bold').setNumberFormat(FMT_BRL);
 
-  // Cinza nas colunas com fórmula (D, G, H, I, J)
-  ['D3:D101', 'G3:G101', 'H3:H101', 'I3:I101', 'J3:J101'].forEach(r =>
+  // Cinza nas colunas com fórmula (D, G, H, I)
+  ['D3:D101', 'G3:G101', 'H3:H101', 'I3:I101'].forEach(r =>
     sheet.getRange(r).setBackground(COR.protegido)
   );
 
@@ -576,17 +547,17 @@ function criarAbaDividas() {
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo('Quitada')
       .setBackground(COR.verdeClaro).setFontColor(COR.verdeFonte)
-      .setRanges([sheet.getRange('J3:J101')]).build(),
+      .setRanges([sheet.getRange('I3:I101')]).build(),
     SpreadsheetApp.newConditionalFormatRule()
       .whenTextEqualTo('Ativa')
       .setBackground(COR.vermClaro).setFontColor(COR.vermFonte)
-      .setRanges([sheet.getRange('J3:J101')]).build(),
+      .setRanges([sheet.getRange('I3:I101')]).build(),
   ]);
 
   // Proteção — editável: A, B, C, E, F
   sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).forEach(p => p.remove());
   const protection = sheet.protect()
-    .setDescription('Colunas D, G, H, I e J contêm fórmulas.');
+    .setDescription('Colunas D, G, H e I contêm fórmulas.');
   protection.setWarningOnly(true);
   protection.setUnprotectedRanges([
     sheet.getRange('A3:C101'),
@@ -595,24 +566,11 @@ function criarAbaDividas() {
 
   sheet.setFrozenRows(2);
   ss.setActiveSheet(sheet);
-
-  // Atualiza dropdowns (só dívidas ativas)
-  const validacao = SpreadsheetApp.newDataValidation()
-    .requireValueInList(getTodasCategorias(ss), true)
-    .setAllowInvalid(false)
-    .build();
-  ss.getSheets().forEach(s => {
-    if (/^[A-Za-z]{3}\/\d{4}$/.test(s.getName())) {
-      s.getRange(`C${LOG_ROW}:C2000`).setDataValidation(validacao);
-    }
-  });
-
   ui.alert(
     'Aba "Dívidas" pronta!\n\n' +
-    '• Preencha: Descrição, Valor total, Parcelas, Início.\n' +
-    '• Para dívidas já em andamento, preencha "Anteriores" com as parcelas já pagas.\n' +
-    '• Dívidas quitadas saem automaticamente do dropdown.\n' +
-    '• Use "Atualizar categorias" ao adicionar novas dívidas.'
+    '• Preencha: Descrição, Valor total, Parcelas, Início e Parcelas pagas.\n' +
+    '• Atualize "Parcelas pagas" todo mês.\n' +
+    '• Status muda para "Quitada" automaticamente quando Restantes ≤ 0.'
   );
 }
 
