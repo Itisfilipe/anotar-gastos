@@ -65,7 +65,7 @@ A linha de **Totais** no final mostra o compromisso mensal total e o saldo deved
 - **Fechar/Reabrir mês**: bloqueia edição de meses finalizados com indicador visual (aba verde)
 - **Seletor de data** no log de transações
 - **Locale pt_BR**: datas no formato dd/mm/aaaa, valores em R$, separador decimal vírgula
-- **Menu "Financeiro"** com 11 ações úteis
+- **Menu "Financeiro"** com 12 ações úteis
 
 ## Configuração inicial
 
@@ -80,16 +80,16 @@ A linha de **Totais** no final mostra o compromisso mensal total e o saldo deved
 
 | Ação | Descrição |
 |------|-----------|
-| Criar planilha completa | Cria as 12 abas mensais + Dashboard para o ano configurado |
+| Criar planilha completa (ano inteiro) | Cria as 12 abas mensais + Dashboard para o ano configurado |
 | Novo mês... | Cria uma aba para qualquer mês/ano informado |
 | Criar próximo mês automaticamente | Detecta o próximo mês a partir de hoje e cria a aba |
 | Ir para o mês atual | Navega para a aba do mês corrente |
 | Copiar budget do mês anterior | Copia os valores de budget do mês anterior |
-| Atualizar categorias | Atualiza as listas de categorias em todas as abas mensais |
+| Atualizar categorias de todas as abas | Recria o resumo e dropdowns em todas as abas (log preservado) |
 | Resumo do mês atual | Exibe um resumo rápido dos totais da aba ativa |
 | Verificar meses do ano | Mostra quais meses existem e quais estão faltando |
-| Fechar mês | Bloqueia a aba mensal contra edição acidental (aba fica verde) |
-| Reabrir mês | Desbloqueia a aba mensal para edição novamente |
+| Fechar mês (bloquear edição) | Bloqueia a aba mensal contra edição acidental (aba fica verde) |
+| Reabrir mês (desbloquear edição) | Desbloqueia a aba mensal para edição novamente |
 | Criar / atualizar aba Dívidas | Cria ou atualiza a aba de acompanhamento de parcelas e financiamentos |
 | Como usar (abrir aba) | Abre a aba "Como usar" com instruções completas |
 

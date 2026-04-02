@@ -705,11 +705,13 @@ function criarAbaDividas() {
   sheet.getRange('D3:D500').setNumberFormat(FMT_BRL);
   sheet.getRange('I3:I500').setNumberFormat(FMT_BRL);
 
-  // COUNTIF: conta pagamentos no log de todos os meses do ano
-  const countif = (r) => MESES.map(({ abrev }) => {
-    const aba = `${abrev}/${ANO}`;
-    return `IFERROR(COUNTIF('${aba}'!C$${LOG_ROW}:C;A${r});0)`;
-  }).join('+');
+  // COUNTIF: conta pagamentos no log de todos os meses (ano atual + anterior)
+  const anos = [ANO - 1, ANO];
+  const countif = (r) => anos.flatMap(ano =>
+    MESES.map(({ abrev }) =>
+      `IFERROR(COUNTIF('${abrev}/${ano}'!C$${LOG_ROW}:C;A${r});0)`
+    )
+  ).join('+');
 
   for (let r = 3; r <= 100; r++) {
     // D = Valor mensal
