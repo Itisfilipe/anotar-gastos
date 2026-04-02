@@ -28,6 +28,20 @@ Edite os arrays `CAT_ENTRADA` e `CAT_SAIDA` no topo do script. Depois:
 - **Mês novo** (sem dados): crie normalmente — a nova categoria já aparece no resumo e no dropdown.
 - **Mês existente (com dados)**: use **Financeiro > Atualizar categorias**. O resumo (seções com totais) e os dropdowns são reconstruídos automaticamente. **Os dados do log são preservados.**
 
+### Dívidas e parcelas
+1. Menu **Financeiro > Criar / atualizar aba Dívidas**
+2. Na aba "Dívidas", preencha para cada parcela/financiamento:
+
+| Você preenche | Calculado automaticamente |
+|---------------|--------------------------|
+| **Descrição** — ex: "Geladeira Nubank" | **Valor mensal** = Valor total ÷ Parcelas |
+| **Valor total** — ex: R$ 3.600 | **Restantes** = Parcelas − Parcelas pagas |
+| **Parcelas** — ex: 12 | **Saldo devedor** = Valor mensal × Restantes |
+| **Início** — ex: Jan/2026 | |
+| **Parcelas pagas** — atualize todo mês | |
+
+A linha de **Totais** no final mostra o compromisso mensal total e o saldo devedor total. Colunas em cinza contêm fórmulas — não edite.
+
 ---
 
 ## Versão Completa (`planilha_financeira.gs`)
@@ -71,6 +85,7 @@ Edite os arrays `CAT_ENTRADA` e `CAT_SAIDA` no topo do script. Depois:
 | Verificar meses do ano | Mostra quais meses existem e quais estão faltando |
 | Fechar mês | Bloqueia a aba mensal contra edição acidental (aba fica verde) |
 | Reabrir mês | Desbloqueia a aba mensal para edição novamente |
+| Criar / atualizar aba Dívidas | Cria ou atualiza a aba de acompanhamento de parcelas e financiamentos |
 | Instruções de uso | Exibe as instruções de preenchimento |
 
 ## Como preencher
@@ -90,6 +105,9 @@ A categoria selecionada direciona o valor automaticamente para a seção correta
 ### Valores manuais
 - **Saldo Anterior** (seção no topo, coluna C): saldo em conta corrente PF/PJ, renda fixa, renda variável, cripto e outros ativos — atualize todo mês para acompanhar sua evolução
 - **Rendimento do mês** (seção Investimentos, coluna C): ganho ou perda com investimentos no mês
+
+### Dívidas e parcelas
+Use **Financeiro > Criar / atualizar aba Dívidas**. Funciona igual à versão simples — preencha Descrição, Valor total, Parcelas, Início e Parcelas pagas. O sistema calcula valor mensal, restantes e saldo devedor. Veja a tabela detalhada na seção da versão simples acima.
 
 ### Células em cinza
 Contêm fórmulas automáticas — não edite. Um aviso de confirmação aparece se você tentar.
