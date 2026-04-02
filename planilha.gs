@@ -353,7 +353,7 @@ function montarAba(sheet, mesNome, ano) {
   sheet.setColumnWidth(2, 180);
   sheet.setColumnWidth(3, 130);
   sheet.setColumnWidth(4, 130);
-  sheet.setColumnWidth(5, 20);
+  sheet.setColumnWidth(5, 80);
 
   // ── Título ─────────────────────────────────────────────────────────────────
   sheet.setRowHeight(1, 42);
@@ -381,8 +381,6 @@ function montarAba(sheet, mesNome, ano) {
       .setBackground(COR.logHeader).setFontColor(COR.logFonte)
       .setFontWeight('bold').setHorizontalAlignment('center');
   });
-
-  sheet.setColumnWidth(5, 80);
 
   sheet.getRange(`A${LOG_ROW}:A2000`).setNumberFormat('dd/mm/yyyy');
   sheet.getRange(`D${LOG_ROW}:D2000`).setNumberFormat(FMT_BRL);
@@ -414,8 +412,9 @@ function reconstruirResumo(sheet) {
   // Detecta posição antiga do log (pode diferir se categorias mudaram)
   const totalRows = sheet.getLastRow();
   let oldLogDataRow = 0;
-  if (totalRows > 0) {
-    const colA = sheet.getRange(1, 1, Math.min(totalRows, LOG_ROW + 20), 1).getValues();
+  const searchRows = Math.min(totalRows, LOG_ROW + 20);
+  if (searchRows > 0) {
+    const colA = sheet.getRange(1, 1, searchRows, 1).getValues();
     for (let i = 0; i < colA.length; i++) {
       if (colA[i][0] === 'LOG DE TRANSAÇÕES') { oldLogDataRow = i + 3; break; }
     }
@@ -423,13 +422,9 @@ function reconstruirResumo(sheet) {
 
   // Se o log mudou de posição, migra os dados
   let savedLogData = null;
-  if (oldLogDataRow > 0 && oldLogDataRow !== LOG_ROW) {
-    const logLastRow = sheet.getLastRow();
-    if (logLastRow >= oldLogDataRow) {
-      const numCols = sheet.getLastColumn() || 5;
-      savedLogData = sheet.getRange(oldLogDataRow, 1, logLastRow - oldLogDataRow + 1, numCols).getValues();
-      sheet.getRange(oldLogDataRow - 2, 1, logLastRow - oldLogDataRow + 3, numCols).clearContent().clearFormat();
-    }
+  if (oldLogDataRow > 0 && oldLogDataRow !== LOG_ROW && totalRows >= oldLogDataRow) {
+    savedLogData = sheet.getRange(oldLogDataRow, 1, totalRows - oldLogDataRow + 1, 5).getValues();
+    sheet.getRange(oldLogDataRow - 2, 1, totalRows - oldLogDataRow + 3, 5).clearContent().clearFormat();
   }
 
   // Limpa área do resumo (entre título e log title bar)
@@ -509,7 +504,7 @@ function reconstruirResumo(sheet) {
   sheet.getRange(1, 1, saldoRow, 4).setVerticalAlignment('middle');
 
   // Restaura dados do log migrados (se o log mudou de posição)
-  if (savedLogData && savedLogData.length > 0) {
+  if (savedLogData) {
     sheet.getRange(LOG_ROW, 1, savedLogData.length, savedLogData[0].length).setValues(savedLogData);
   }
 }
