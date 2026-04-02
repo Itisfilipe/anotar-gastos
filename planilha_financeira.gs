@@ -971,6 +971,33 @@ function calcLayout() {
 function reconstruirResumo(sheet) {
   const L = calcLayout();
 
+  // Salva valores manuais (budget, saldo anterior, rendimento) antes de limpar.
+  // Usa label como chave para ser robusto a mudanças de linha.
+  const lastRow   = Math.min(sheet.getLastRow(), LOG_ROW - 3);
+  const savedVals = {};
+  if (lastRow >= 2) {
+    const labels = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const colB   = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    const colC   = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+    const tags   = sheet.getRange(2, 5, lastRow - 1, 1).getValues();
+    labels.forEach(([label], i) => {
+      if (!label) return;
+      const tag = tags[i][0];
+      // Budget (col B) para Fixos e Variáveis
+      if ((tag === TAG.fixo || tag === TAG.variavel) && colB[i][0] !== '') {
+        savedVals['B:' + label] = colB[i][0];
+      }
+      // Saldo Anterior (col C) — valores manuais
+      if (tag === TAG.posFinanceira && colC[i][0] !== '') {
+        savedVals['C:' + label] = colC[i][0];
+      }
+      // Rendimento do mês (sem tag, label exato)
+      if (label === 'Rendimento do mês' && colC[i][0] !== '') {
+        savedVals['C:Rendimento do mês'] = colC[i][0];
+      }
+    });
+  }
+
   // Limpa área do resumo (entre título e log), preservando log
   sheet.getRange(2, 1, LOG_ROW - 3, 5).clearContent().clearFormat()
     .clearDataValidations().setBackground(null);
@@ -982,11 +1009,7 @@ function reconstruirResumo(sheet) {
     linhaItem(sheet, L.posStart + i, item, TAG.posFinanceira, null, null, null);
     sheet.getRange(L.posStart + i, 3).setNumberFormat(FMT_BRL);
   });
-  sheet.getRange(L.posTotal, 1, 1, 4).setBackground(COR.total);
-  sheet.getRange(L.posTotal, 1).setValue('TOTAL ATIVOS FINANCEIROS').setFontWeight('bold');
-  sheet.getRange(L.posTotal, 3)
-    .setFormula(`=SUMIF($E:$E;"${TAG.posFinanceira}";$C:$C)`)
-    .setFontWeight('bold').setNumberFormat(FMT_BRL);
+  linhaTotalSecao(sheet, L.posTotal, 'TOTAL ATIVOS FINANCEIROS', TAG.posFinanceira, null, false);
 
   // ── ENTRADAS ───────────────────────────────────────────────────────────────
   cabecalhoSecao(sheet, L.entHeader, 'ENTRADAS', COR.secao, COR.secaoFonte, ['', '', 'Real', '']);
@@ -1043,6 +1066,22 @@ function reconstruirResumo(sheet) {
     .setFontColor(COR.saldoFonte).setFontWeight('bold').setFontSize(12)
     .setNumberFormat(FMT_BRL);
   formatacaoDiferenca(sheet, `C${L.saldoRow}:C${L.saldoRow}`);
+
+  // ── Restaurar valores manuais salvos ────────────────────────────────────────
+  // Percorre as linhas recém-criadas e restaura budget/saldo/rendimento por label
+  const newLastRow = L.saldoRow;
+  if (Object.keys(savedVals).length > 0) {
+    for (let r = 2; r <= newLastRow; r++) {
+      const label = sheet.getRange(r, 1).getValue();
+      if (!label) continue;
+      if (savedVals['B:' + label] !== undefined) {
+        sheet.getRange(r, 2).setValue(savedVals['B:' + label]);
+      }
+      if (savedVals['C:' + label] !== undefined) {
+        sheet.getRange(r, 3).setValue(savedVals['C:' + label]);
+      }
+    }
+  }
 
   // ── Formatação e proteção ──────────────────────────────────────────────────
   aplicarCinzaFormulas(sheet, L);
